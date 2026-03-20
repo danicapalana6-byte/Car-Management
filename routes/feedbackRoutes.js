@@ -1,87 +1,55 @@
-module.exports = function(feedbacks, clients) {
+module.exports = function(Feedback, Client) { // Use the Mongoose models
     const express = require('express');
     const router = express.Router();
-    const multer = require('multer');
-    const path = require('path');
 
-    // Set up storage for multer
-    const storage = multer.diskStorage({
-        destination: './public/uploads/feedbacks/',
-        filename: function(req, file, cb){
-            cb(null, file.fieldname + '-' + Date.now() + path.extname(file.originalname));
-        }
-    });
+    // POST a new feedback
+    router.post('/submit', async (req, res) => {
+        try {
+            const { user, rating, comment, booking, image } = req.body;
 
-    // Init upload
-    const upload = multer({
-        storage: storage,
-        limits: {fileSize: 1000000}, // 1MB limit
-        fileFilter: function(req, file, cb){
-            checkFileType(file, cb);
-        }
-    }).single('photo');
+            // Basic validation
+            if (!user || !rating || !comment) {
+                return res.status(400).json({ message: 'User, rating, and comment are required.' });
+            }
 
-    // Check file type
-    function checkFileType(file, cb){
-        // Allowed ext
-        const filetypes = /jpeg|jpg|png|gif/;
-        // Check ext
-        const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
-        // Check mime
-        const mimetype = filetypes.test(file.mimetype);
-
-        if(mimetype && extname){
-            return cb(null,true);
-        } else {
-            cb('Error: Images Only!');
-        }
-    }
-
-    router.post('/submit', (req, res) => {
-        const bearerHeader = req.headers['authorization'];
-        if (typeof bearerHeader !== 'undefined') {
-            const bearer = bearerHeader.split(' ');
-            const bearerToken = bearer[1];
-            const userId = bearerToken.split('-')[1]; 
-
-            upload(req, res, (err) => {
-                if(err){
-                    res.status(400).json({ msg: err });
-                } else {
-                    const client = clients.find(c => c.id == userId);
-                    if (!client) {
-                        return res.status(404).json({ msg: 'Client not found' });
-                    }
-
-                    const newFeedback = {
-                        id: Date.now(),
-                        clientId: userId,
-                        comments: req.body.comments,
-                        photo: req.file ? `/uploads/feedbacks/${req.file.filename}` : null,
-                        clientName: client.name,
-                        createdAt: new Date()
-                    };
-
-                    feedbacks.push(newFeedback);
-                    res.status(201).json(newFeedback);
-                }
+            const newFeedback = new Feedback({
+                user,
+                rating,
+                comment,
+                booking,
+                image
             });
-        } else {
-            res.sendStatus(403);
+
+            await newFeedback.save();
+            res.status(201).json({ message: 'Feedback submitted successfully', feedback: newFeedback });
+
+        } catch (error) {
+            console.error("Failed to save feedback:", error);
+            res.status(500).json({ message: 'Server error while submitting feedback.' });
         }
     });
 
-    router.get('/my-feedbacks', (req, res) => {
-        const bearerHeader = req.headers['authorization'];
-        if (typeof bearerHeader !== 'undefined') {
-            const bearer = bearerHeader.split(' ');
-            const bearerToken = bearer[1];
-            const userId = bearerToken.split('-')[1];
+    // GET all feedbacks (for admin or public display)
+    router.get('/', async (req, res) => {
+        try {
+            const feedbacks = await Feedback.find().populate('booking').sort({ createdAt: -1 });
+            res.json(feedbacks);
+        } catch (error) {
+            res.status(500).json({ message: 'Error fetching feedbacks' });
+        }
+    });
 
-            const clientFeedbacks = feedbacks.filter(f => f.clientId === userId);
+    // GET feedbacks by a specific user
+    router.get('/my-feedbacks', async (req, res) => {
+        const { username } = req.query;
+        if (!username) {
+            return res.status(400).json({ message: "Username is required." });
+        }
+        try {
+            const clientFeedbacks = await Feedback.find({ user: username }).sort({ createdAt: -1 });
             res.json(clientFeedbacks);
-        } else {
-            res.sendStatus(403);
+        } catch (error) {
+            res.status(500).json({ message: 'Error fetching user feedbacks' });
         }
     });
 

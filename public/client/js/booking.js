@@ -394,6 +394,39 @@ async function loadBookings() {
         if (response.ok) {
             const list = await response.json();
             renderBookings(list);
+
+            //-- NEW: Populate feedback dropdown
+            const feedbackTopicEl = document.getElementById("feedbackTopic");
+            if (feedbackTopicEl) {
+              feedbackTopicEl.innerHTML = '<option value="">-- Select a booking or service --</option>'; // Clear previous
+              
+              // Add completed bookings
+              const completedBookings = list.filter(b => b.status === 'completed');
+              if (completedBookings.length > 0) {
+                const bookingGroup = document.createElement('optgroup');
+                bookingGroup.label = "My Completed Bookings";
+                completedBookings.forEach(b => {
+                  const option = document.createElement('option');
+                  option.value = b._id;
+                  option.textContent = `${b.service} on ${formatReadableDate(b.date)}`;
+                  bookingGroup.appendChild(option);
+                });
+                feedbackTopicEl.appendChild(bookingGroup);
+              }
+
+              // Add general services
+              const serviceGroup = document.createElement('optgroup');
+              serviceGroup.label = "General Services";
+              servicesList.forEach(s => {
+                const option = document.createElement('option');
+                option.value = `service_${s.id}`; // Prefix to distinguish from booking IDs
+                option.textContent = s.name;
+                serviceGroup.appendChild(option);
+              });
+              feedbackTopicEl.appendChild(serviceGroup);
+            }
+            //-- END NEW
+
             // Cache in localStorage
             lsSet(LS_BOOK, list);
         } else {
@@ -432,9 +465,9 @@ function renderBookings(list) {
             bookingsTbody.innerHTML = upcomingBookings.length ? "" : '<tr><td colspan="8">No upcoming bookings</td></tr>'; 
             list.forEach(b => {
                 const tr = document.createElement("tr");
-                let actionsHtml = '<button data-id="' + b.id + '" class="cancelBtn btn-danger">Cancel</button>';
+                let actionsHtml = '<button data-id="' + b._id + '" class="cancelBtn btn-danger">Cancel</button>';
                 if (b.status === "pending") {
-                    actionsHtml = '<button data-id="' + b.id + '" class="editBtn btn-primary small">Edit</button> ' + actionsHtml;
+                    actionsHtml = '<button data-id="' + b._id + '" class="editBtn btn-primary small">Edit</button> ' + actionsHtml;
                 }
                 
                 tr.innerHTML = `
@@ -485,7 +518,7 @@ function renderBookings(list) {
                             alert("Network error. Please try again.");
                             // Fallback to LS delete
                             let list = lsGet(LS_BOOK, []);
-                            list = list.filter(x => x.id !== bookingId);
+                            list = list.filter(x => x._id !== bookingId);
                             lsSet(LS_BOOK, list);
                             loadBookings();
                         }
@@ -617,7 +650,7 @@ function cancelEdit() {
     showPage("bookingsPage");
     
     // ✅ Success validation
-    showSuccessModal("Edit Succesful", "Booking form has been edited successfully!");
+    showSuccessModal("Edit Successful", "Booking form has been edited successfully!");
 }
 
     async function updateBooking() {
@@ -655,11 +688,11 @@ function cancelEdit() {
 
                 if (response.ok) {
                     // Update local storage
-                    let list = lsGet(LS_BOOK, []);
-                    const index = list.findIndex(b => b.id === editingBookingId);
+                    let currentBookings = lsGet(LS_BOOK, []);
+                    const index = currentBookings.findIndex(b => b._id === editingBookingId);
                     if (index !== -1) {
-                        list[index] = result;
-                        lsSet(LS_BOOK, list);
+                        currentBookings[index] = result;
+                        lsSet(LS_BOOK, currentBookings);
                     }
                     
                     cancelEdit();
@@ -983,49 +1016,46 @@ if (bookBtn) {
         };
     });
 
-    function loadMyFeedbacks() {
+    async function loadMyFeedbacks() {
         if (!myFeedbacksEl) return;
-        const feedbacks = lsGet(LS_FEEDBACK, []);
-        myFeedbacksEl.innerHTML = feedbacks.length ? "" : "<p>No feedback yet.</p>";
-        feedbacks.slice().reverse().forEach(fb => {
-            const div = document.createElement("div");
-            div.style = "border:1px solid #ccc; padding:15px; margin-bottom:10px; border-radius:10px; position:relative; background:#fff;";
-            div.innerHTML = `
-    <div style="display:flex; justify-content:space-between; align-items:flex-start;">
-        <div>
-            <strong>${escapeHtml(fb.user)}</strong><br>
-            <small class="muted">${fb.date}</small>
-        </div>
-        <button class="remove-fb btn-danger" data-id="${fb.id}">
-            Remove
-        </button>
-    </div>
 
-    <div style="color:#f5c518; margin:5px 0;">
-        ${'★'.repeat(fb.rating)}${'☆'.repeat(5-fb.rating)}
-    </div>
+        const username = localStorage.getItem("clientUsername");
+        if (!username) {
+            myFeedbacksEl.innerHTML = "<p>Please log in to see your feedbacks.</p>";
+            return;
+        }
 
-    <p style="margin:0;">${escapeHtml(fb.comment)}</p>
+        try {
+            const response = await fetch(`/api/feedback/my-feedbacks?username=${encodeURIComponent(username)}`);
+            const feedbacks = await response.json();
 
-    ${
-        fb.image 
-        ? `<div style="margin-top:10px;">
-                <img src="${fb.image}" 
-                     style="max-width:100%; border-radius:8px; border:1px solid #ccc;">
-           </div>` 
-        : ""
-    }
-`;
-            div.querySelector(".remove-fb").onclick = () => {
-                showDeleteFeedbackPopup("Are you sure you want to delete this feedback?", () => {
-                    let list = lsGet(LS_FEEDBACK, []);
-                    list = list.filter(x => x.id !== fb.id);
-                    lsSet(LS_FEEDBACK, list);
-                    loadMyFeedbacks();
-                });
-            };
-            myFeedbacksEl.appendChild(div);
-        });
+            myFeedbacksEl.innerHTML = feedbacks.length ? "" : "<p>No feedback yet.</p>";
+            feedbacks.forEach(fb => {
+                const div = document.createElement("div");
+                div.style = "border:1px solid #ccc; padding:15px; margin-bottom:10px; border-radius:10px; position:relative; background:#fff;";
+                // Note: The 'Remove' button has been removed as its localStorage logic is no longer valid.
+                div.innerHTML = `
+                    <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                        <div>
+                            <strong>${escapeHtml(fb.user)}</strong><br>
+                            <small class="muted">${new Date(fb.createdAt).toLocaleDateString()}</small>
+                        </div>
+                    </div>
+
+                    <div style="color:#f5c518; margin:5px 0;">
+                        ${'★'.repeat(fb.rating)}${'☆'.repeat(5 - fb.rating)}
+                    </div>
+
+                    <p style="margin:0;">${escapeHtml(fb.comment)}</p>
+
+                    ${fb.image ? `<div style="margin-top:10px;"><img src="${fb.image}" style="max-width:100%; border-radius:8px; border:1px solid #ccc;"></div>` : ""}
+                `;
+                myFeedbacksEl.appendChild(div);
+            });
+        } catch (err) {
+            console.error('Failed to load my feedbacks:', err);
+            myFeedbacksEl.innerHTML = "<p>Could not load feedbacks.</p>";
+        }
     }
 
 function showDeleteFeedbackPopup(message, onConfirm) {
@@ -1067,29 +1097,55 @@ function showDeleteFeedbackPopup(message, onConfirm) {
 
         const comment = document.getElementById("feedbackComments").value;
         const imageInput = document.getElementById("feedbackImage");
+        const topicEl = document.getElementById("feedbackTopic");
+        const bookingId = topicEl.value;
 
+        if (!bookingId) return alert("Please select a booking or service to review.");
         if (!selectedFeedbackRating) return alert("Please rate us!");
 
-        const saveFeedback = (imageData = "") => {
+        const saveFeedback = async (imageData = "") => {
+            const topicValue = topicEl.value;
             const newFb = {
-                id: nowId(),
                 user: localStorage.getItem("clientUsername") || "Guest",
                 rating: selectedFeedbackRating,
                 comment,
-                image: imageData,
-                date: new Date().toLocaleDateString()
+                image: imageData
             };
 
-            const allFb = lsGet(LS_FEEDBACK, []);
-            allFb.push(newFb);
-            lsSet(LS_FEEDBACK, allFb);
+            if (topicValue.startsWith('service_')) {
+                const serviceId = topicValue.replace('service_', '');
+                const service = servicesList.find(s => s.id === serviceId);
+                if (service) {
+                    newFb.service = service.name;
+                }
+            } else {
+                newFb.booking = topicValue;
+            }
 
-            showFeedbackPopup("Feedback submitted!");
-            loadMyFeedbacks();
+            try {
+                const response = await fetch('/api/feedback/submit', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(newFb)
+                });
 
-            feedbackForm.reset();
-            selectedFeedbackRating = 0;
-            stars.forEach(s => s.textContent = "☆");
+                const result = await response.json();
+
+                if (response.ok) {
+                    showFeedbackPopup("Feedback submitted!");
+                    loadMyFeedbacks(); // Reload feedbacks to show the new one
+
+                    feedbackForm.reset();
+                    selectedFeedbackRating = 0;
+                    stars.forEach(s => s.textContent = "☆");
+                    document.getElementById("feedbackTopic").value = "";
+                } else {
+                    alert('Feedback submission failed: ' + result.message);
+                }
+            } catch (err) {
+                console.error('Feedback submission error:', err);
+                alert('An error occurred while submitting feedback.');
+            }
         };
 
         // If image selected
