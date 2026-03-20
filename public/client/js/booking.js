@@ -109,6 +109,44 @@ function nowId() {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
+    // Mobile menu toggle
+    const hamburger = document.getElementById('hamburger');
+    const sidebar = document.querySelector('.sidebar');
+    const container = document.querySelector('.container');
+    
+    if (hamburger && sidebar) {
+        hamburger.addEventListener('click', () => {
+            hamburger.classList.toggle('active');
+            sidebar.classList.toggle('mobile-sidebar');
+            sidebar.classList.toggle('active');
+            
+            // Add overlay
+            let overlay = document.querySelector('.sidebar-overlay');
+            if (!overlay) {
+                overlay = document.createElement('div');
+                overlay.className = 'sidebar-overlay';
+                document.body.appendChild(overlay);
+            }
+            overlay.classList.toggle('active');
+        });
+        
+        // Close on overlay click
+        document.addEventListener('click', (e) => {
+            if (e.target.classList.contains('sidebar-overlay')) {
+                hamburger.classList.remove('active');
+                sidebar.classList.remove('mobile-sidebar', 'active');
+                e.target.classList.remove('active');
+            }
+        });
+        
+        // Keyboard support
+        hamburger.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                hamburger.click();
+            }
+        });
+    }
     // Header/Sidebar elements
     const nameEl = document.getElementById("name"); 
     const profileUserEl = document.getElementById("profileUser"); 
