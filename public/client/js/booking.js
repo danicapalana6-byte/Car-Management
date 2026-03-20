@@ -1,7 +1,18 @@
 const LS_BOOK = "demoBookings_v1";
 const LS_FEEDBACK = "demoFeedback_v1"; 
 
-const servicesList = [
+let servicesList = [];
+
+// Fetch services dynamically from server
+async function loadServicesDynamic() {
+  try {
+    const response = await fetch('/api/services');
+    if (response.ok) {
+      servicesList = await response.json();
+    } else {
+      console.warn('Failed to load services, using fallback');
+      // Fallback to hardcoded
+      servicesList = [
     {
         id: "basic_wash",
         name: "Basic Wash",
@@ -108,7 +119,7 @@ function nowId() {
     return '_' + Math.random().toString(36).substr(2, 9);
 }
 
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
     // Mobile menu toggle
     const hamburger = document.getElementById('hamburger');
     const sidebar = document.querySelector('.sidebar');
@@ -347,7 +358,7 @@ loadProfileView();
     if (logoutBtn) {
         logoutBtn.addEventListener("click", () => {
             localStorage.clear();
-            window.location.href = "/client/signup.html";
+window.location.href = "/client/index.html";
         });
     }
 
@@ -1215,7 +1226,8 @@ function showDeleteFeedbackPopup(message, onConfirm) {
     overlay.querySelector("#okBtn").onclick = () => overlay.remove();
 }
 
-    loadServices();
+    await loadServicesDynamic();
+    loadServices(); // Populate UI with loaded data
     loadBookings();
     loadMyFeedbacks();
     
@@ -1225,6 +1237,4 @@ function showDeleteFeedbackPopup(message, onConfirm) {
 
 
 
-if (bookBtn) {
-    bookBtn.addEventListener("click", submitBooking);
-}
+});
