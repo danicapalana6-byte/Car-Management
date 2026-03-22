@@ -90,7 +90,7 @@
         </div>
         <div style="flex:1">
           <label class="small">Select Available Time</label>
-          <input id="time" type="time" min="08:00" max="17:00" required>
+          <input id="time" type="time" min="09:00" max="18:00" required>
         </div>
       </div>
 
@@ -114,16 +114,16 @@
 />
 
       <label class="small" style="margin-top:12px">Vehicle Model</label>
-      <input id="vehicleModel" type="text" placeholder="Example: Toyota Vios"/>
+      <input id="vehicleModel" type="text" placeholder="Example: Toyota Vios">
 
       <label class="small" style="margin-top:12px">Plate Number</label>
-      <input id="plateNumber" type="text" placeholder="ABC-1234"/>
+      <input id="plateNumber" type="text" placeholder="ABC-1234">
 
       <label class="small" style="margin-top:12px">Your Location</label>
-      <input id="location" type="text" placeholder="Enter your address"/>
+      <input id="location" type="text" placeholder="Enter your address">
 
       <label class="small" style="margin-top:12px">Email Address</label>
-      <input id="email" type="email" placeholder="example@email.com"/>
+      <input id="email" type="email" placeholder="example@email.com">
 
       <label class="small" style="margin-top:12px; font-weight:bold;">Payment Method</label>
       <select id="payment" disabled>
@@ -139,7 +139,7 @@
       <div style="display:flex; align-items:center; gap:10px; margin-top:14px">
   <button id="bookBtn" class="primary" style="padding:10px 20px">Confirm Booking</button>
   <button type="button" id="resetBtn" class="btn-cancel" style="padding:10px 20px">Reset Form</button>
-  <div id="pricePreview" class="small" style="margin-left:auto"></div>
+  <div id="pricePreview" class="small" style="margin-left:auto">₱0</div>
 </div>
 
       <p id="msg" class="small" style="color:#b91c1c;display:none;margin-top:10px"></p>
@@ -263,7 +263,6 @@
   </div>
 </div>
 
-<script src="/client/js/booking.js"></script>
-<script async defer src="https://maps.googleapis.com/maps/api/js?key=YOUR_KEY&callback=initMap"></script>
+<script src="./js/booking.js"></script>
 </body>
 </html>

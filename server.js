@@ -11,10 +11,13 @@ const app = express();
 const MONGO_URI = process.env.MONGO_URI || "mongodb://127.0.0.1:27017/carwashpro";
 mongoose.connect(MONGO_URI)
     .then(() => {
-        console.log("MongoDB connected successfully.");
+        console.log("MongoDB connected successfully at", MONGO_URI);
         seedDatabase(); // Seed database with initial data if empty
     })
-    .catch(err => console.error("MongoDB connection error:", err));
+    .catch(err => {
+        console.error("MongoDB connection error:", err);
+        console.log("Starting without MongoDB - using fallback data");
+    });
 
 // Import Mongoose Models
 const Client = require('./models/Client');
@@ -26,24 +29,45 @@ const User = require('./models/User'); // For admin
 
 // --- Initial Data Seeding ---
 async function seedDatabase() {
+  console.log('🔄 Seeding database...');
+  
   const defaultServices = [
-    { name: "Basic Wash", price: 150, description: "Exterior wash" },
-    { name: "Premium Wash", price: 300, description: "Interior + exterior" },
-    { name: "Interior Cleaning", price: 250, description: "Interior vacuum" },
-    { name: "Full Detail", price: 600, description: "Complete detail" }
+    { name: "Basic Wash", price: 150, description: "Exterior wash", image: "basic_wash.jpg" },
+    { name: "Premium Wash", price: 300, description: "Interior + exterior", image: "Deluxe_Wash.jpg" },
+    { name: "Interior Cleaning", price: 250, description: "Interior vacuum", image: "Interior_Detailing.jpg" },
+    { name: "Full Detail", price: 600, description: "Complete detail", image: "sp.png" },
+    { name: "Tire Shine", price: 100, description: "Tire dressing", image: "tire_shine.jpg" },
+    { name: "Engine Wash", price: 400, description: "Engine bay cleaning", image: "Engine_Cleaning.jpg" },
+    { name: "Headlight Restoration", price: 500, description: "Restore headlight clarity", image: "Headlight_restoration.jpg" },
+    { name: "Wax & Polish", price: 800, description: "Protect and shine your car", image: "Wax_&_Polish.jpg" },
+    { name: "Scratch Removal", price: 1200, description: "Minor scratch repair", image: "Scratch_removal.jpg" },
+    { name: "Ceramic Coating", price: 5000, description: "Long-term paint protection", image: "Ceramic_coating.jpg" }
   ];
+  
   const defaultOffers = [
     { name: 'New Customer 10% Off', discount: 10, description: 'First time customers get 10% off any service', expiry: '2024-12-31'},
     { name: 'Weekend Special', discount: 15, description: '15% off Fri-Sun bookings', expiry: 'ongoing'}
   ];
 
-  if (await Service.countDocuments() === 0) {
-    console.log('Seeding Services...');
-    await Service.insertMany(defaultServices);
-  }
-  if (await Offer.countDocuments() === 0) {
-    console.log('Seeding Offers...');
-    await Offer.insertMany(defaultOffers);
+  try {
+    const serviceCount = await Service.countDocuments();
+    console.log(`📊 Found ${serviceCount} services in DB`);
+    
+    if (serviceCount === 0) {
+      console.log('🌱 Seeding Services...');
+      await Service.insertMany(defaultServices);
+      console.log('✅ Services seeded');
+    }
+    
+    const offerCount = await Offer.countDocuments();
+    console.log(`📊 Found ${offerCount} offers in DB`);
+    if (offerCount === 0) {
+      console.log('🌱 Seeding Offers...');
+      await Offer.insertMany(defaultOffers);
+      console.log('✅ Offers seeded');
+    }
+  } catch (error) {
+    console.error('❌ Seed error:', error);
   }
 }
 
@@ -51,27 +75,37 @@ async function seedDatabase() {
 // For example, pass the models to the route handlers.
 const profileRoutes = require('./routes/profileRoutes')(Client);
 const feedbackRoutes = require('./routes/feedbackRoutes')(Feedback, Client);
+const hasEmailConfig =
+    process.env.EMAIL_USER &&
+    process.env.EMAIL_PASS &&
+    process.env.EMAIL_USER !== "yourgmail@gmail.com" &&
+    process.env.EMAIL_PASS !== "your_app_password";
+
+const transporter = hasEmailConfig
+    ? nodemailer.createTransport({
+        service: "gmail",
+        auth: {
+            user: process.env.EMAIL_USER,
+            pass: process.env.EMAIL_PASS
+        }
+    })
+    : null;
+const clientAuthRoutes = require('./routes/clientAuth')(Client, transporter);
 
 app.use(cors());
-app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: false, limit: '10mb' }));
 
 // Serve static files from the public folder
 app.use(express.static(path.join(__dirname, "public")));
 app.use('/uploads', express.static(path.join(__dirname, 'public/uploads')));
 
+// Serve client static files
+app.use('/client', express.static(path.join(__dirname, "client")));
 
 app.use('/api/profile', profileRoutes);
 app.use('/api/feedback', feedbackRoutes);
-
-const transporter = nodemailer.createTransport({
-    service: "gmail",
-    // IMPORTANT: Use environment variables for credentials in production
-    auth: {
-        user: process.env.EMAIL_USER || "yourgmail@gmail.com",
-        pass: process.env.EMAIL_PASS || "your_app_password"
-    }
-});
+app.use('/api/clientAuth', clientAuthRoutes);
 
 app.post('/api/admin/login', async (req, res) => {
     try {
@@ -95,60 +129,49 @@ app.post('/api/admin/login', async (req, res) => {
 
 
 app.get("/api/services", async (req, res) => {
+    console.log('API /api/services hit');
     try {
         const services = await Service.find();
-        res.json(services);
+        console.log(`DB returned ${services.length} services`);
+        
+        if (services.length === 0) {
+            console.log('⚠️ No services in DB, returning fallback');
+            return res.json([
+                {
+                    _id: "basic_wash",
+                    name: "Basic Wash", 
+                    price: 150,
+                    image: "/client/image/basic_wash.jpg",
+                    duration: 30,
+                    description: "Quick exterior wash",
+                    fullDescription: "Our Basic Wash includes exterior hand wash, rims and tire cleaning, hand drying, and light interior vacuum."
+                },
+                {
+                    _id: "deluxe_wash",
+                    name: "Deluxe Wash",
+                    price: 400,
+                    image: "/client/image/Deluxe_Wash.jpg", 
+                    duration: 60,
+                    description: "Full exterior & interior clean",
+                    fullDescription: "Deluxe Wash includes everything in Basic plus detailed interior cleaning and tire dressing."
+                }
+            ]);
+        }
+        
+        // Enhance services with images/details
+        const enhanced = services.map(s => ({
+            ...s.toObject(),
+            _id: s._id,
+            image: `/client/image/${s.name.toLowerCase().replace(/ /g, '_')}.jpg`,
+            duration: s.duration || 45,
+            fullDescription: `${s.description || ''}. Professional car wash service.`
+        }));
+        console.log(`✅ Returning ${enhanced.length} services`);
+        res.json(enhanced);
     } catch (error) {
-        res.status(500).json({ message: "Error fetching services" });
-    }
-});
-
-app.post("/api/clientAuth/signup", async (req, res) => {
-    try {
-        const body = req.body || {};
-        // Add fallbacks to match different client scripts (just like the booking route)
-        const name = body.name || body.clientName || body.fullName || '';
-        const email = body.email || body.clientEmail || '';
-        const username = body.username || body.clientUser || email.split('@')[0] || name || '';
-        const password = body.password || body.clientPassword || '';
-
-        // Prevent bcrypt or validation from throwing errors if fields are missing
-        if (!name || !email || !password) {
-            return res.status(400).json({ message: "Name, email, and password are required fields." });
-        }
-
-        const existingClient = await Client.findOne({ $or: [{ email }, { username }] });
-        if (existingClient) {
-            return res.status(400).json({ message: "Email or username already exists." });
-        }
-
-        const hashedPassword = await bcrypt.hash(password, 10);
-
-        const newClient = await Client.create({
-            ...body, // Passes any extra fields (like phone, number) that the Mongoose schema might require
-            name,
-            email,
-            username,
-            password: hashedPassword
-        });
-
-        res.status(201).json({
-            message: "Registration successful",
-            user: { id: newClient._id, name: newClient.name, email: newClient.email, username: newClient.username },
-            token: "token-" + newClient._id // Using MongoDB's _id
-        });
-    } catch (error) {
-        console.error("Signup error:", error);
-        // Handle Duplicate Key Database Error (e.g. Email or Username already exists)
-        if (error.code === 11000) {
-            return res.status(400).json({ message: "Registration failed: Email or username is already in use." });
-        }
-        if (error.name === 'ValidationError') {
-            // Pass explicit validation errors back to the frontend so you can see exactly what is missing
-            const messages = Object.values(error.errors).map(e => e.message).join(', ');
-            return res.status(400).json({ message: "Validation Error: " + messages });
-        }
-        res.status(500).json({ message: "Server error during registration.", error: error.message });
+        console.error('Services API error:', error);
+        // Fallback response
+        res.json([{ _id: "error", name: "Service temporarily unavailable", price: 0 }]);
     }
 });
 
@@ -211,16 +234,31 @@ app.get("/api/bookings/:username", async (req, res) => {
 
 // New: GET bookings by query param (client uses ?clientName= or ?username=)
 app.get("/api/clientBookings", async (req, res) => {
+    const identifiers = [
+        req.query.clientName,
+        req.query.username,
+        req.query.email,
+        req.query.legacyUsername,
+        req.query.legacyEmail
+    ].filter(Boolean);
+    console.log('API /api/clientBookings hit for:', identifiers);
     try {
-        const qName = req.query.clientName || req.query.username || '';
-        if (!qName) {
+        if (identifiers.length === 0) {
+            console.log('No client identifier provided');
             return res.json([]);
         }
         const userBookings = await Booking.find({
-            $or: [{ username: qName }, { name: qName }, { email: qName }, { clientUser: qName }]
+            $or: identifiers.flatMap(value => ([
+                { username: value },
+                { name: value },
+                { email: value },
+                { clientUser: value }
+            ]))
         });
+        console.log(`Found ${userBookings.length} bookings for provided identifiers`);
         res.json(userBookings);
     } catch (error) {
+        console.error('ClientBookings API error:', error);
         res.status(500).json({ message: "Error fetching client bookings." });
     }
 });
@@ -280,7 +318,7 @@ adminApiRouter.get("/services", async (req, res) => {
         const enhanced = services.map(s => ({
             ...s.toObject(),
             _id: s._id, // ensure _id is present
-            image: `/image/${s.name.toLowerCase().replace(/ /g, '_')}.jpg`,
+            image: `/client/image/${s.name.toLowerCase().replace(/ /g, '_')}.jpg`,
             duration: 45,
             fullDescription: `${s.description}. Professional car wash service.`
         }));
@@ -360,14 +398,23 @@ app.put("/api/book/:id", async (req, res) => {
 // Client-safe DELETE endpoint
 app.delete("/api/book/:id", async (req, res) => {
     try {
-        const { username } = req.query;
-        if (!username) {
-            return res.status(400).json({ message: "Username required for verification" });
+        const identifiers = [
+            req.query.username,
+            req.query.email,
+            req.query.legacyUsername,
+            req.query.legacyEmail
+        ].filter(Boolean);
+        if (identifiers.length === 0) {
+            return res.status(400).json({ message: "Client identity required for verification" });
         }
         
         const deletedBooking = await Booking.findOneAndDelete({
             _id: req.params.id,
-            $or: [{ username: username }, { clientUser: username }]
+            $or: identifiers.flatMap(value => ([
+                { username: value },
+                { clientUser: value },
+                { email: value }
+            ]))
         });
 
         if (!deletedBooking) {
@@ -399,6 +446,21 @@ app.use('/api/admin', adminApiRouter);
 // prevent direct access to admin folder
 app.use('/admin', (req, res, next) => {
     res.redirect('/');
+});
+
+app.use((err, req, res, next) => {
+    if (err && err.type === 'entity.too.large') {
+        return res.status(413).json({ message: 'Image upload is too large. Please choose a smaller photo.' });
+    }
+    next(err);
+});
+
+app.get('/', (req, res) => {
+    res.status(200).json({
+        status: 'ok',
+        message: 'CarWash Pro backend is running',
+        servicesEndpoint: '/api/services'
+    });
 });
 
 const PORT = process.env.PORT || 3000;

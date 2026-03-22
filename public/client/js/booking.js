@@ -104,6 +104,11 @@ async function loadServicesDynamic() {
         image: "../image/sp.png",
     },
 ];
+    }
+  } catch (error) {
+    console.error("Error loading services:", error);
+  }
+}
 
 function escapeHtml(text) {
     const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
@@ -385,7 +390,7 @@ window.location.href = "/client/index.html";
     }
 
     function loadServices() {
-        if (serviceEl) {
+    if (serviceEl) {
             serviceEl.innerHTML = '<option value="">Choose Service</option>';
             servicesList.forEach(s => {
                 const o = document.createElement("option");
@@ -396,6 +401,20 @@ window.location.href = "/client/index.html";
                 o.dataset.description = s.description;
                 serviceEl.appendChild(o);
             });
+            
+            // Service change handler for preview
+            serviceEl.onchange = () => {
+                const opt = serviceEl.selectedOptions[0];
+                if (opt.value) {
+                    const pricePreview = document.getElementById('pricePreview');
+                    const serviceDetails = document.getElementById('serviceDetails');
+                    if (pricePreview) pricePreview.textContent = `₱${opt.dataset.price}`;
+                    if (serviceDetails) serviceDetails.textContent = opt.dataset.description;
+                } else {
+                    const pricePreview = document.getElementById('pricePreview');
+                    if (pricePreview) pricePreview.textContent = '';
+                }
+            };
         }
 
         if (servicesOverview) {
@@ -1235,6 +1254,3 @@ function showDeleteFeedbackPopup(message, onConfirm) {
     setInterval(loadBookings, 30000); // Every 30s
 });
 
-
-
-});
