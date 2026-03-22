@@ -27,6 +27,25 @@ const Service = require('./models/Service');
 const Offer = require('./models/Offer');
 const User = require('./models/User'); // For admin
 
+const SERVICE_IMAGE_MAP = {
+    "Basic Wash": "basic_wash.jpg",
+    "Premium Wash": "Deluxe_Wash.jpg",
+    "Deluxe Wash": "Deluxe_Wash.jpg",
+    "Interior Cleaning": "Interior_Detailing.jpg",
+    "Full Detail": "sp.png",
+    "Tire Shine": "tire_shine.jpg",
+    "Engine Wash": "Engine_Cleaning.jpg",
+    "Headlight Restoration": "Headlight_restoration.jpg",
+    "Wax & Polish": "Wax_&_Polish.jpg",
+    "Scratch Removal": "Scratch_removal.jpg",
+    "Ceramic Coating": "Ceramic_coating.jpg"
+};
+
+function getServiceImagePath(serviceName) {
+    const filename = SERVICE_IMAGE_MAP[serviceName] || "logo.png";
+    return `/client/image/${filename}`;
+}
+
 // --- Initial Data Seeding ---
 async function seedDatabase() {
   console.log('🔄 Seeding database...');
@@ -162,7 +181,7 @@ app.get("/api/services", async (req, res) => {
         const enhanced = services.map(s => ({
             ...s.toObject(),
             _id: s._id,
-            image: `/client/image/${s.name.toLowerCase().replace(/ /g, '_')}.jpg`,
+            image: getServiceImagePath(s.name),
             duration: s.duration || 45,
             fullDescription: `${s.description || ''}. Professional car wash service.`
         }));
@@ -195,7 +214,7 @@ app.post("/api/book", async (req, res) => {
         const newBooking = await Booking.create(booking);
 
         // try sending confirmation email if email exists
-        if (finalEmail) {
+        if (finalEmail && transporter) {
             try {
                 await transporter.sendMail({
                     from: process.env.EMAIL_USER || "yourgmail@gmail.com",
@@ -318,7 +337,7 @@ adminApiRouter.get("/services", async (req, res) => {
         const enhanced = services.map(s => ({
             ...s.toObject(),
             _id: s._id, // ensure _id is present
-            image: `/client/image/${s.name.toLowerCase().replace(/ /g, '_')}.jpg`,
+            image: getServiceImagePath(s.name),
             duration: 45,
             fullDescription: `${s.description}. Professional car wash service.`
         }));
@@ -456,11 +475,7 @@ app.use((err, req, res, next) => {
 });
 
 app.get('/', (req, res) => {
-    res.status(200).json({
-        status: 'ok',
-        message: 'CarWash Pro backend is running',
-        servicesEndpoint: '/api/services'
-    });
+    res.redirect('/client/index.html');
 });
 
 const PORT = process.env.PORT || 3000;

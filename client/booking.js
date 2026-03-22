@@ -476,7 +476,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     const user = localStorage.getItem("clientUsername") || "";
     const email = localStorage.getItem("clientEmail") || "-";
     const number = localStorage.getItem("clientNumber") || "-";
-    const pic = localStorage.getItem("clientProfilePicture") || "../image/default-profile.png";
+    const pic = localStorage.getItem("clientProfilePicture") || "./image/logo.png";
 
     if (timeEl) {
     timeEl.setAttribute("min", "09:00"); // 9 AM

@@ -71,7 +71,7 @@ async function login(){
       body:JSON.stringify({username,password})
     });
 
-    const data = await res.json();
+    const data = await res.json().catch(() => ({}));
 
     if(res.ok){
 
@@ -96,7 +96,7 @@ async function login(){
 
   }catch(err){
     msg.classList.remove("success");
-    msg.textContent = "Server offline or network error. Please check connection and try again.";
+    msg.textContent = "Could not reach the server. Make sure the backend is running.";
     console.error(err);
   }
 }

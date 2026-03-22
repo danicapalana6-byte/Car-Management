@@ -60,10 +60,23 @@ async function signup(){
   const password = document.getElementById("password").value;
 
   const msg = document.getElementById("msg");
+  const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
   if(!name || !email || !username || !password){
     msg.classList.remove("success");
     msg.textContent = "Please fill all fields";
+    return;
+  }
+
+  if(!emailPattern.test(email)){
+    msg.classList.remove("success");
+    msg.textContent = "Enter a valid email address.";
+    return;
+  }
+
+  if(password.length < 6){
+    msg.classList.remove("success");
+    msg.textContent = "Password must be at least 6 characters.";
     return;
   }
 
@@ -77,7 +90,7 @@ async function signup(){
       body:JSON.stringify({name,email,username,password})
     });
 
-    const data = await res.json();
+    const data = await res.json().catch(() => ({}));
 
     if(res.ok){
 
@@ -102,7 +115,7 @@ async function signup(){
 
   }catch(err){
     msg.classList.remove("success");
-    msg.textContent = "Server offline or network error. Please check connection and try again.";
+    msg.textContent = "Could not reach the server. Make sure the backend is running and MongoDB is connected.";
     console.error(err);
   }
 }
