@@ -1,52 +1,38 @@
 <!DOCTYPE html>
-<html>
-
+<html lang="en">
 <head>
-<title>CarWash Pro - Login</title>
-<link rel="stylesheet" href="style.css">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CarWash Pro Admin Login</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
 </head>
-
-<body class="center">
-
-<div class="box">
-
-<h2>CarWash Pro</h2>
-<p class="subtitle">Admin Login</p>
-
-<input id="username" placeholder="Username" autocomplete="username">
-<input id="password" type="password" placeholder="Password" autocomplete="current-password">
-
-<p id="msg" style="color:#b91c1c; font-size:13px; margin:6px 0 0 0; display:none"></p>
-
-<button type="button" onclick="login()">Login</button>
-
-<script>
-    // Login function - works even if admin.js fails
-    function login() {
-        const username = document.getElementById('username').value;
-        const password = document.getElementById('password').value;
-        const msg = document.getElementById('msg');
-
-        if (username === 'admin' && password === 'admin123') {
-            localStorage.setItem('adminToken', 'admin-token-' + Date.now());
-            window.location.href = 'dashboard.html';
-        } else {
-            msg.textContent = 'Invalid: username "admin", password "admin123"';
-            msg.style.display = 'block';
-        }
-    }
-
-    // Auto-hide msg on input
-    document.querySelectorAll('#username, #password').forEach(input => {
-        input.addEventListener('input', () => {
-            document.getElementById('msg').style.display = 'none';
-        });
-    });
-</script>
-
-</div>
-
-<script src="admin.js"></script>
+<body class="login-page">
+  <main class="login-layout">
+    <section class="login-hero">
+      <p class="eyebrow">CarWash Pro</p>
+      <h1>Admin operations portal</h1>
+      <p>Manage the public website experience with a cleaner backend dashboard for bookings, services, and promotions.</p>
+    </section>
+    <section class="login-card">
+      <p class="eyebrow">Secure Access</p>
+      <h2>Sign in to continue</h2>
+      <form id="loginForm" class="form-grid single-column">
+        <label>
+          <span>Username</span>
+          <input id="username" autocomplete="username" required>
+        </label>
+        <label>
+          <span>Password</span>
+          <input id="password" type="password" autocomplete="current-password" required>
+        </label>
+        <p id="msg" class="error-message hidden"></p>
+        <button type="submit" class="primary-btn full-width">Login</button>
+      </form>
+    </section>
+  </main>
+  <script src="admin.js"></script>
 </body>
-
 </html>

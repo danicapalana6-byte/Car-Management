@@ -9,15 +9,6 @@ const app = express();
 
 // --- Database Setup ---
 const MONGO_URI = process.env.MONGO_URI || "mongodb://127.0.0.1:27017/carwashpro";
-mongoose.connect(MONGO_URI)
-    .then(() => {
-        console.log("MongoDB connected successfully at", MONGO_URI);
-        seedDatabase(); // Seed database with initial data if empty
-    })
-    .catch(err => {
-        console.error("MongoDB connection error:", err);
-        console.log("Starting without MongoDB - using fallback data");
-    });
 
 // Import Mongoose Models
 const Client = require('./models/Client');
@@ -152,31 +143,7 @@ app.get("/api/services", async (req, res) => {
     try {
         const services = await Service.find();
         console.log(`DB returned ${services.length} services`);
-        
-        if (services.length === 0) {
-            console.log('⚠️ No services in DB, returning fallback');
-            return res.json([
-                {
-                    _id: "basic_wash",
-                    name: "Basic Wash", 
-                    price: 150,
-                    image: "/client/image/basic_wash.jpg",
-                    duration: 30,
-                    description: "Quick exterior wash",
-                    fullDescription: "Our Basic Wash includes exterior hand wash, rims and tire cleaning, hand drying, and light interior vacuum."
-                },
-                {
-                    _id: "deluxe_wash",
-                    name: "Deluxe Wash",
-                    price: 400,
-                    image: "/client/image/Deluxe_Wash.jpg", 
-                    duration: 60,
-                    description: "Full exterior & interior clean",
-                    fullDescription: "Deluxe Wash includes everything in Basic plus detailed interior cleaning and tire dressing."
-                }
-            ]);
-        }
-        
+
         // Enhance services with images/details
         const enhanced = services.map(s => ({
             ...s.toObject(),
@@ -189,8 +156,7 @@ app.get("/api/services", async (req, res) => {
         res.json(enhanced);
     } catch (error) {
         console.error('Services API error:', error);
-        // Fallback response
-        res.json([{ _id: "error", name: "Service temporarily unavailable", price: 0 }]);
+        res.status(500).json({ message: "Error fetching services." });
     }
 });
 
@@ -478,6 +444,17 @@ app.get('/', (req, res) => {
     res.redirect('/client/index.html');
 });
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-});
+const PORT = process.env.PORT || 10000;
+
+mongoose.connect(MONGO_URI)
+    .then(() => {
+        console.log("✅ MongoDB connected");
+        seedDatabase();
+        app.listen(PORT, () => {
+            console.log("🚀 Server running on port", PORT);
+        });
+    })
+    .catch((err) => {
+        console.error("❌ MongoDB connection error:", err);
+        process.exit(1);
+    });

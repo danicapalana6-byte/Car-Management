@@ -1,852 +1,564 @@
-        // localStorage keys
-        const LS_BOOKINGS = 'admin_bookings_v1',
-              LS_SERVICES = 'admin_services_v1',
-              LS_OFFERS = 'admin_offers_v1';
+(function () {
+  const state = { bookings: [], services: [], offers: [], clients: [] };
+  const pageTitles = {
+    dashboard: "Dashboard",
+    bookings: "Bookings",
+    "services-section": "Services",
+    offers: "Offers",
+    analytics: "Analytics",
+    reports: "Reports"
+  };
+  let revenueChartInstance = null;
 
-        // UI Elements - now safe after DOM ready
-        const sections = {
-            dashboard: document.getElementById('dashboard'),
-            bookings: document.getElementById('bookings'),
-            'services-section': document.getElementById('services-section'),
-            analytics: document.getElementById('analytics'),
-            offers: document.getElementById('offers'),
-            reports: document.getElementById('reports')
-        };
-
-        const btns = {
-            dashboard: document.getElementById('btnDashboard'),
-            bookings: document.getElementById('btnBookings'),
-            services: document.getElementById('btnServices'),
-            analytics: document.getElementById('btnAnalytics'),
-            offers: document.getElementById('btnOffers'),
-            reports: document.getElementById('btnReports'),
-            logout: document.getElementById('btnLogout')
-        };
-
-// Data (loaded from API)
-    let bookings = [];
-    let offers = JSON.parse(localStorage.getItem(LS_OFFERS)) || [
-        { id: 'off1', name: '10% off Mon-Wed', discount: 10 }
-    ];
-    let services = [];
-
-    function saveOffers() {
-        localStorage.setItem(LS_OFFERS, JSON.stringify(offers));
+  document.addEventListener("DOMContentLoaded", () => {
+    if (document.getElementById("loginForm")) {
+      bindLoginPage();
+      return;
     }
+    if (!checkAuth()) return;
+    bindDashboardEvents();
+    showPage("dashboard");
+  });
 
-    async function fetchWithAuth(url, options = {}) {
-        const token = localStorage.getItem('adminToken');
-        const headers = {
-            ...options.headers,
-            'Authorization': token
-        };
-
-        const response = await fetch(url, { ...options, headers });
-
-        if (response.status === 403) {
-            window.location.href = 'login.html';
-            throw new Error('Forbidden');
-        }
-
-        return response;
-    }
-
-
-    // Load data from backend
-    async function loadData() {
-        try {
-            const [bRes, sRes] = await Promise.all([
-                fetchWithAuth('/api/admin/bookings'),
-                fetchWithAuth('/api/admin/services')
-            ]);
-            bookings = await bRes.json();
-            services = await sRes.json();
-        } catch (e) {
-            console.error('Load data failed:', e);
-            bookings = [];
-            services = [];
-        }
-    }
-
-    // Navigation Logic
-    async function showPage(pageId) {
-        // Hide all sections first
-        Object.values(sections).forEach(s => {
-            if (s) s.classList.add('hidden');
+  function bindLoginPage() {
+    const form = document.getElementById("loginForm");
+    const message = document.getElementById("msg");
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      message.classList.add("hidden");
+      try {
+        const response = await fetch("/api/admin/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            username: document.getElementById("username").value.trim(),
+            password: document.getElementById("password").value
+          })
         });
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(payload.message || "Invalid admin credentials.");
+        localStorage.setItem("adminToken", payload.token);
+        window.location.href = "dashboard.html";
+      } catch (error) {
+        message.textContent = error.message;
+        message.classList.remove("hidden");
+      }
+    });
+  }
 
-        // Show the selected section
-        if (sections[pageId]) {
-            sections[pageId].classList.remove('hidden');
-        } else if (pageId === 'dashboard') {
-            sections.dashboard.classList.remove('hidden');
-        }
-
-
-        // Load data and render all components
-        await loadData();
-        renderAll();
-    }
-
-    // Sidebar button event listeners
-    btns.dashboard.addEventListener('click', () => showPage('dashboard'));
-    btns.bookings.addEventListener('click', () => showPage('bookings'));
-    btns.services.addEventListener('click', () => showPage('services-section'));
-    btns.analytics.addEventListener('click', () => showPage('analytics'));
-    btns.offers.addEventListener('click', () => showPage('offers'));
-    btns.reports.addEventListener('click', () => showPage('reports'));
-
-    btns.logout.addEventListener('click', () => {
-        if(confirm('Logout?')) {
-            localStorage.removeItem('adminToken');
-            window.location.href = 'login.html';
-        }
+  function bindDashboardEvents() {
+    [
+      ["btnDashboard", "dashboard"],
+      ["btnBookings", "bookings"],
+      ["btnServices", "services-section"],
+      ["btnOffers", "offers"],
+      ["btnAnalytics", "analytics"],
+      ["btnReports", "reports"]
+    ].forEach(([id, page]) => {
+      document.getElementById(id)?.addEventListener("click", () => showPage(page));
     });
 
-    function saveAll() {
-        console.log("Saving data (not implemented yet)...", { bookings, services, offers });
-    }
-
-    // Render Bookings
-    function renderBookings() {
-        const el = document.getElementById('bookingListTbody');
-        if (!el || !bookings.length) { 
-            if(el) el.innerHTML = '<tr><td colspan="7">No bookings found.</td></tr>'; 
-            return; 
-        }
-        el.innerHTML = '';
-        bookings.forEach(b => {
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
-                <td>${escapeHtml(b.name)}</td>
-                <td>${escapeHtml(b.service)}</td>
-                <td>${escapeHtml(b.vehicle) || ''}</td>
-                <td>${escapeHtml(b.date)} at ${escapeHtml(b.time)}</td>
-                <td>₱${escapeHtml(b.price)}</td>
-                <td>${escapeHtml(b.status)}</td>
-                <td>
-                    <button class="confirmBtn" data-id="${b.id}" style="color:green" ${b.status === 'confirmed' ? 'disabled' : ''}>
-                        ${b.status === 'confirmed' ? '✓ Confirmed' : 'Confirm'}
-                    </button>
-                    <button class="rejectBtn" data-id="${b.id}" style="color:red">Reject</button>
-                </td>
-            `;
-            el.appendChild(tr);
-        });
-
-        el.querySelectorAll('.rejectBtn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                showDeleteConfirmPopup('Are you sure you want to reject this booking?', async () => {
-                    try {
-                        const response = await fetchWithAuth(`/api/admin/bookings/${btn.dataset.id}`, { method: 'DELETE' });
-                        if (response.ok) {
-                            bookings = bookings.filter(x => x.id !== btn.dataset.id);
-                            renderBookings();
-                            updateStats();
-                        } else {
-                            alert('Failed to delete booking.');
-                        }
-                    } catch (error) {
-                        console.error('Delete booking error:', error);
-                        alert('An error occurred while deleting the booking.');
-                    }
-                });
-            });
-        });
-
-        el.querySelectorAll('.confirmBtn').forEach(btn => {
-            btn.addEventListener('click', async () => {
-                if (confirm('Are you sure you want to confirm this booking?')) {
-                    const b = bookings.find(x => x.id === btn.dataset.id);
-                    if (b) {
-                        try {
-                            const response = await fetchWithAuth(`/api/admin/bookings/${b.id}`, {
-                                method: 'PUT',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ status: 'confirmed' })
-                            });
-                            if (response.ok) {
-                                b.status = 'confirmed';
-                                renderBookings();
-                            } else {
-                                alert('Failed to confirm booking.');
-                            }
-                        } catch (error) {
-                            console.error('Confirm booking error:', error);
-                            alert('An error occurred while confirming the booking.');
-                        }
-                    }
-                }
-            });
-        });
-    }
-
-    // Render Services
-    function renderServices() {
-        const el = document.getElementById('services-list');
-        if(!el) return;
-        el.innerHTML = '';
-
-        if (!services.length) {
-            el.innerHTML = '<p>No services available.</p>';
-            return;
-        }
-
-        services.forEach(s => {
-            const div = document.createElement('div');
-            div.className = 'service-card card';
-            div.innerHTML = `
-                <div style="height:120px;border-radius:10px;overflow:hidden;display:flex;align-items:center;justify-content:center;background:#f6fff8">
-                    <img src="${s.image}" alt="${escapeHtml(s.name)}" style="max-height:100%; max-width:100%; object-fit:contain;">
-                </div>
-                <div>
-                    <h4 style="margin:6px 0 4px">${escapeHtml(s.name)}</h4>
-                    <div class="small muted">₱${s.price} • ${s.duration} mins</div>
-                </div>
-                <div style="margin-top:auto;display:flex;justify-content:flex-end;gap:8px;">
-                    <button data-id="${s.id}" class="primary btn-view">View</button>
-                    <button data-id="${s.id}" class="edit-btn">Edit</button>
-                    <button data-id="${s.id}" class="btn-danger svcDelete">Remove</button>
-                </div>
-            `;
-            el.appendChild(div);
-        });
-
-        // Add event listeners for buttons
-        el.querySelectorAll('.btn-view').forEach(btn => {
-            btn.addEventListener('click', () => {
-                const s = services.find(x => x.id === btn.dataset.id);
-                if (s) {
-                    document.getElementById('viewModalTitle').textContent = s.name;
-                    document.getElementById('viewModalBody').innerHTML = `<div style="text-align:center;margin-bottom:10px"><img src="${s.image}" style="max-width:100%;border-radius:8px;"></div><p>${s.fullDescription}</p>`;
-                    document.getElementById('viewModalMeta').innerHTML = `<strong>Price:</strong> ₱${s.price} &nbsp; <strong>Duration:</strong> ${s.duration} mins`;
-                    document.getElementById('viewServiceModal').style.display = 'flex';
-                }
-            });
-        });
-        
-        el.querySelectorAll('.edit-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                const service = services.find(s => s.id === btn.dataset.id);
-                openModal(service);
-            });
-        });
-
-        el.querySelectorAll('.svcDelete').forEach(btn => {
-            btn.addEventListener('click', () => {
-                showDeleteConfirmPopup('Are you sure you want to delete this service?', async () => {
-                    try {
-                        const response = await fetchWithAuth(`/api/admin/services/${btn.dataset.id}`, { method: 'DELETE' });
-                        if (response.ok) {
-                            await loadData();
-                            renderServices();
-                            updateStats();
-                        } else {
-                            alert('Failed to delete service.');
-                        }
-                    } catch (error) {
-                        console.error('Delete service error:', error);
-                        alert('An error occurred while deleting the service.');
-                    }
-                });
-            });
-        });
-    }
-
-    function showDeleteConfirmPopup(message, onConfirm) {
-        const overlay = document.createElement("div");
-        overlay.className = 'modal-backdrop show';
-        overlay.style.zIndex = "10000";
-
-        overlay.innerHTML = `
-            <div class="modal-card" style="border-top: 5px solid #dc3545; text-align:center;">
-                <h3 style="color: #dc3545;">Confirm Deletion</h3>
-                <p style="margin: 15px 0; color: #555;">${message}</p>
-                <div style="display:flex; gap:10px; justify-content:center;">
-                    <button id="confirmDeleteYes" class="primary" style="padding:10px 20px; background-color: #dc3545; border:none;">Yes, Delete</button>
-                    <button id="confirmDeleteNo" class="btn-cancel" style="padding:10px 20px;">Cancel</button>
-                </div>
-            </div>
-        `;
-        document.body.appendChild(overlay);
-
-        overlay.querySelector("#confirmDeleteYes").onclick = () => {
-            onConfirm();
-            overlay.remove();
-        };
-        overlay.querySelector("#confirmDeleteNo").onclick = () => overlay.remove();
-
-        overlay.onclick = (e) => {
-            if (e.target === overlay) {
-                overlay.remove();
-            }
-        };
-    }
-
-    function showSuccessPopup(message) {
-        const overlay = document.createElement("div");
-        overlay.className = 'modal-backdrop show';
-        overlay.style.zIndex = "10000";
-
-        overlay.innerHTML = `
-            <div class="modal-card" style="border-top: 5px solid #28a745; text-align:center;">
-                <h3 style="color: #28a745;">Success</h3>
-                <p style="margin: 15px 0; color: #555;">${message}</p>
-                <div style="display:flex; gap:10px; justify-content:center;">
-                    <button id="successOkBtn" class="primary" style="padding:10px 20px;">OK</button>
-                </div>
-            </div>
-        `;
-        document.body.appendChild(overlay);
-
-        overlay.querySelector("#successOkBtn").onclick = () => {
-            overlay.remove();
-        };
-        overlay.onclick = (e) => {
-            if (e.target === overlay) {
-                overlay.remove();
-            }
-        };
-    }
-
-    // Modal Close
-    const modals = document.querySelectorAll('.modal-backdrop, .modal');
-    modals.forEach(modal => {
-        modal.addEventListener('click', (e) => {
-            if(e.target === modal) {
-                modal.style.display = 'none';
-            }
-        });
+    document.getElementById("btnLogout")?.addEventListener("click", () => {
+      localStorage.removeItem("adminToken");
+      window.location.href = "login.html";
     });
-    
-    const closeBtns = document.querySelectorAll('.close-btn, .btn-cancel');
-    closeBtns.forEach(btn => {
-        btn.addEventListener('click', () => {
-            btn.closest('.modal, .modal-backdrop').style.display = 'none';
-        });
+    document.getElementById("refreshBtn")?.addEventListener("click", async () => {
+      await refreshState();
+      renderAll();
     });
-
-
-    // Render Offers
-    function renderOffers() {
-        const el = document.getElementById('offerList');
-        el.innerHTML = '';
-        offers.forEach(o => {
-            const div = document.createElement('div');
-            div.className = 'svcItem';
-            div.innerHTML = `<strong>${escapeHtml(o.name)}</strong> - ${o.discount}% Off 
-                            <button data-id="${o.id}" class="offerDelete" style="margin-left:10px">Delete</button>`;
-            el.appendChild(div);
-        });
-        el.querySelectorAll('.offerDelete').forEach(btn => {
-            btn.addEventListener('click', () => {
-                showDeleteConfirmPopup('Are you sure you want to delete this offer?', () => {
-                    offers = offers.filter(x => x.id !== btn.dataset.id);
-                    saveAll(); renderOffers(); updateStats();
-                });
-            });
-        });
-    }
-
-    // Update Dashboard Stats
-    function updateStats() {
-        const today = new Date().toISOString().split('T')[0];
-        const todayBookings = bookings.filter(b => b.date === today && b.status === 'confirmed');
-        document.getElementById('carsToday').innerText = todayBookings.length;
-        const totalRev = bookings.reduce((acc, b) => acc + (b.status === 'confirmed' ? Number(b.price || 0) : 0), 0);
-        document.getElementById('revenueToday').innerText = '₱' + totalRev.toLocaleString();
-        document.getElementById('bookingCount').innerText = bookings.length;
-        document.getElementById('offerCount').innerText = offers.length;
-    }
-    
-function renderServicesOverview() {
-    const el = document.getElementById('servicesOverview');
-    if (!el || !services.length) {
-        el.innerHTML = '<p class="small muted">No services available.</p>';
-        return;
-    }
-    el.innerHTML = '';
-    services.slice(0, 10).forEach(s => { // Show top 10 services
-        const card = document.createElement('div');
-        card.className = 'service-card card';
-        card.style = 'display:flex;flex-direction:column;padding:12px;gap:8px;';
-        card.innerHTML = `
-            <div style="height:120px;border-radius:10px;overflow:hidden;display:flex;align-items:center;justify-content:center;background:#f6fff8">
-                <img src="${s.image}" alt="${escapeHtml(s.name)}" style="max-height:100%;max-width:100%;object-fit:contain;">
-            </div>
-            <div>
-                <h4 style="margin:6px 0 4px">${escapeHtml(s.name)}</h4>
-                <div class="small muted">₱${s.price} • ${s.duration} mins</div>
-            </div>
-            <button class="primary btn-view" data-id="${s.id}">View Details</button>
-        `;
-        el.appendChild(card);
+    document.getElementById("addServiceBtn")?.addEventListener("click", () => openServiceModal());
+    document.getElementById("addOfferBtn")?.addEventListener("click", () => openOfferModal());
+    document.getElementById("serviceForm")?.addEventListener("submit", saveService);
+    document.getElementById("offerForm")?.addEventListener("submit", saveOffer);
+    document.querySelectorAll(".close-modal").forEach((button) => {
+      button.addEventListener("click", () => closeModal(button.dataset.close));
     });
-
-    // Add modal listeners
-    el.querySelectorAll('.btn-view').forEach(btn => {
-        btn.addEventListener('click', () => {
-            const service = services.find(x => x.id === btn.dataset.id);
-            if (service) {
-                document.getElementById('viewModalTitle').textContent = service.name;
-                document.getElementById('viewModalBody').innerHTML = `<div style="text-align:center;margin-bottom:10px"><img src="${service.image}" style="max-width:100%;border-radius:8px;"></div><p>${service.fullDescription}</p>`;
-                document.getElementById('viewModalMeta').innerHTML = `<strong>Price:</strong> ₱${service.price} &nbsp; <strong>Duration:</strong> ${service.duration} mins`;
-                document.getElementById('viewServiceModal').style.display = 'flex';
-            }
-        });
+    document.querySelectorAll(".modal-backdrop").forEach((modal) => {
+      modal.addEventListener("click", (event) => {
+        if (event.target === modal) modal.classList.add("hidden");
+      });
     });
-}
+  }
 
-function renderActiveOffers() {
-    const el = document.getElementById('activeOffers');
-    if (!el) return;
-    if (!offers.length) {
-        el.innerHTML = '<p class="small muted">No active offers</p>';
-        return;
-    }
-    el.innerHTML = offers.map(o => `<div class="small"><strong>${escapeHtml(o.name)}</strong> - ${o.discount}% OFF</div>`).join('');
-}
-
-function renderAnalytics() {
-    if (!document.getElementById('analytics')) return;
-
-    // Top service
-    const serviceCounts = {};
-    bookings.forEach(b => {
-        serviceCounts[b.service] = (serviceCounts[b.service] || 0) + 1;
+  async function showPage(pageId) {
+    document.querySelectorAll(".page-section").forEach((section) => {
+      section.classList.toggle("hidden", section.id !== pageId);
     });
-    const topService = Object.entries(serviceCounts).reduce((a, b) => a[1] > b[1] ? a : b, ['', 0]);
-    document.getElementById('topService').textContent = topService[0] || 'None';
-
-    // Peak day
-    const dayCounts = {};
-    bookings.forEach(b => {
-        const day = new Date(b.date).getDay();
-        dayCounts[day] = (dayCounts[day] || 0) + 1;
+    document.querySelectorAll(".nav-btn").forEach((button) => {
+      button.classList.toggle("active", button.dataset.page === pageId);
     });
-    const peakDay = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][Object.entries(dayCounts).reduce((a, b) => a[1] > b[1] ? a : b, [0, 0])[0]];
-    document.getElementById('peakDay').textContent = peakDay || 'None';
+    const title = document.getElementById("pageTitle");
+    if (title) title.textContent = pageTitles[pageId] || "Dashboard";
+    await refreshState();
+    renderAll();
+  }
 
-    // Avg revenue
-    const confirmedRev = bookings.filter(b => b.status === 'confirmed').reduce((sum, b) => sum + Number(b.price || 0), 0);
-    const avgRev = confirmedRev / Math.max(bookings.length, 1);
-    document.getElementById('avgRevenue').textContent = '₱' + avgRev.toFixed(0);
-
-    // Conversion rate
-    const conversion = (bookings.filter(b => b.status === 'confirmed').length / Math.max(bookings.length, 1)) * 100;
-    document.getElementById('conversionRate').textContent = conversion.toFixed(1) + '%';
-
-    // Revenue chart
-    const ctx = document.getElementById('revenueChart')?.getContext('2d');
-    if (ctx) {
-        const serviceRev = {};
-        bookings.filter(b => b.status === 'confirmed').forEach(b => {
-            serviceRev[b.service] = (serviceRev[b.service] || 0) + Number(b.price || 0);
-        });
-        new Chart(ctx, {
-            type: 'doughnut',
-            data: {
-                labels: Object.keys(serviceRev),
-                datasets: [{ data: Object.values(serviceRev), backgroundColor: ['#2e7d32', '#43a047', '#66bb6a', '#a5d6a7', '#c8e6c9'] }]
-            }
-        });
+  async function refreshState() {
+    try {
+      const [bookingsRes, servicesRes, offersRes, clientsRes] = await Promise.all([
+        fetchWithAuth("/api/admin/bookings"),
+        fetchWithAuth("/api/admin/services"),
+        fetchWithAuth("/api/admin/offers"),
+        fetchWithAuth("/api/admin/clients")
+      ]);
+      state.bookings = await bookingsRes.json();
+      state.services = await servicesRes.json();
+      state.offers = await offersRes.json();
+      state.clients = await clientsRes.json();
+    } catch (error) {
+      console.error("Failed to load admin data:", error);
+      openDialog({
+        eyebrow: "Load Error",
+        title: "Unable to refresh admin data",
+        message: "Check the server connection or sign in again.",
+        confirmLabel: "Close",
+        hideCancel: true
+      });
     }
+  }
 
-    // Revenue table
-    const tableBody = document.getElementById('revenueTable');
-    if (tableBody) {
-        tableBody.innerHTML = Object.entries(serviceRev).map(([service, rev]) => {
-            const count = bookings.filter(b => b.service === service).length;
-            return `<tr><td>${escapeHtml(service)}</td><td>${count}</td><td>₱${rev.toLocaleString()}</td></tr>`;
-        }).join('') || '<tr><td colspan="3">No data</td></tr>';
+  async function fetchWithAuth(url, options = {}) {
+    const token = localStorage.getItem("adminToken");
+    const headers = { ...(options.headers || {}), Authorization: token || "" };
+    const response = await fetch(url, { ...options, headers });
+    if (response.status === 403) {
+      localStorage.removeItem("adminToken");
+      window.location.href = "login.html";
+      throw new Error("Admin access denied.");
     }
-}
-
-    function renderLatestBookings() {
-        const tbody = document.getElementById('latestBookingsTbody');
-        if (!tbody) return;
-        tbody.innerHTML = '';
-        const latestBookings = bookings.slice(-5).reverse();
-
-        if (!latestBookings.length) {
-            tbody.innerHTML = '<tr><td colspan="6">No recent bookings.</td></tr>';
-            return;
-        }
-
-        latestBookings.forEach(b => {
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
-                <td>${escapeHtml(b.name)}</td>
-                <td>${escapeHtml(b.service)}</td>
-                <td>${escapeHtml(b.vehicle)}</td>
-                <td>${escapeHtml(b.date)} ${escapeHtml(b.time)}</td>
-                <td>₱${escapeHtml(b.price)}</td>
-                <td>${escapeHtml(b.status)}</td>
-            `;
-            tbody.appendChild(tr);
-        });
+    if (!response.ok) {
+      const payload = await response.json().catch(() => ({}));
+      throw new Error(payload.message || payload.error || `Request failed: ${response.status}`);
     }
+    return response;
+  }
 
-
-
-    document.getElementById('addServiceBtn').onclick = () => {
-        openModal();
-    };
-    
-    function openModal (service) {
-        const serviceModal = document.getElementById('serviceModal');
-        serviceModal.style.display = 'flex';
-        if (service) {
-            document.getElementById('modalTitle').textContent = 'Edit Service';
-            document.getElementById('serviceId').value = service.id;
-            document.getElementById('serviceName').value = service.name;
-            document.getElementById('servicePrice').value = service.price;
-            document.getElementById('serviceDuration').value = service.duration;
-            document.getElementById('serviceDescription').value = service.description;
-            document.getElementById('serviceFullDescription').value = service.fullDescription;
-            document.getElementById('serviceImage').value = service.image;
-        } else {
-            document.getElementById('modalTitle').textContent = 'Add Service';
-            document.getElementById('serviceForm').reset();
-            document.getElementById('serviceId').value = '';
-        }
-    }
-
-    document.getElementById('addServiceForm').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const id = document.getElementById('serviceId').value;
-        const serviceData = {
-            name: document.getElementById('serviceName').value,
-            price: Number(document.getElementById('servicePrice').value),
-            duration: Number(document.getElementById('serviceDuration').value),
-            description: document.getElementById('serviceDescription').value,
-            fullDescription: document.getElementById('serviceFullDescription').value,
-            image: document.getElementById('serviceImage').value || 'https://via.placeholder.com/300x150?text=Custom+Wash'
-        };
-
-        if(id) {
-            //update
-        } else {
-            //add
-        }
-
-        try {
-            const response = await fetchWithAuth(id ? `/api/admin/services/${id}` : '/api/admin/services', {
-                method: id? 'PUT' : 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(serviceData)
-            });
-
-            if (response.ok) {
-                await loadData();
-                renderServices();
-                updateStats();
-                document.getElementById('serviceModal').style.display = 'none';
-                document.getElementById('addServiceForm').reset();
-                showSuccessPopup(`Service ${id ? 'updated' : 'added'} successfully!`);
-            } else {
-                alert(`Failed to ${id ? 'update' : 'add'} service.`);
-            }
-        } catch (error) {
-            console.error(`Add/update service error:`, error);
-            alert(`An error occurred while ${id ? 'updating' : 'adding'} the service.`);
-        }
-    });
-
-    document.getElementById('addOfferBtn').onclick = () => {
-        document.getElementById('addOfferModal').style.display = 'flex';
-    };
-
-    document.getElementById('addOfferForm').addEventListener('submit', (e) => {
-        e.preventDefault();
-        const name = document.getElementById('offerName').value;
-        const disc = document.getElementById('offerDiscount').value;
-        if (name && disc) {
-            if (confirm('Are you sure you want to add this offer?')) {
-                offers.push({ id: 'o' + Date.now(), name, discount: disc });
-                saveAll();
-                renderOffers();
-                updateStats();
-                document.getElementById('addOfferModal').style.display = 'none';
-                document.getElementById('addOfferForm').reset();
-                showSuccessPopup('Offer added successfully!');
-            }
-        }
-    });
-
-
-    renderBookings(); 
-    renderOffers(); 
-    updateStats(); 
-    renderLatestBookings(); 
-    renderServices(); 
+  function renderAll() {
+    renderStats();
+    renderLatestBookings();
+    renderBookingsTable();
+    renderServices();
+    renderServiceOverview();
+    renderOffers();
+    renderActiveOffers();
     renderAnalytics();
-}
+    renderReports();
+  }
 
-    function escapeHtml(s) { return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+  function renderStats() {
+    const today = new Date().toISOString().split("T")[0];
+    const confirmedToday = state.bookings.filter((b) => b.date === today && b.status === "confirmed").length;
+    const totalRevenue = state.bookings
+      .filter((b) => b.status === "confirmed" || b.status === "completed")
+      .reduce((sum, b) => sum + Number(b.price || 0), 0);
+    setText("carsToday", confirmedToday);
+    setText("revenueToday", formatCurrency(totalRevenue));
+    setText("bookingCount", state.bookings.length);
+    setText("offerCount", state.offers.length);
+    setText("clientCount", state.clients.length);
+    setText("serviceCount", state.services.length);
+  }
 
-    // Auth check - redirect if not logged in
-    function checkAuth() {
-        const token = localStorage.getItem('adminToken');
-        if (!token) {
-            window.location.href = 'login.html';
-            return false;
+  function renderLatestBookings() {
+    const tbody = document.getElementById("latestBookingsTbody");
+    if (!tbody) return;
+    tbody.innerHTML = [...state.bookings].sort(sortByCreatedAtDesc).slice(0, 5).map((booking) => `
+      <tr>
+        <td><strong>${escapeHtml(booking.name)}</strong></td>
+        <td>${escapeHtml(booking.service)}</td>
+        <td>${escapeHtml(vehicleDisplay(booking))}</td>
+        <td>${escapeHtml(booking.date)}<br>${escapeHtml(booking.time)}</td>
+        <td>${formatCurrency(booking.price)}</td>
+        <td>${statusBadge(booking.status)}</td>
+      </tr>
+    `).join("") || emptyRow(6, "No recent bookings yet.");
+  }
+
+  function renderBookingsTable() {
+    const tbody = document.getElementById("bookingListTbody");
+    if (!tbody) return;
+    tbody.innerHTML = [...state.bookings].sort(sortByCreatedAtDesc).map((booking) => `
+      <tr>
+        <td><strong>${escapeHtml(booking.name)}</strong></td>
+        <td>${escapeHtml(booking.service)}</td>
+        <td>${escapeHtml(vehicleDisplay(booking))}</td>
+        <td>${escapeHtml(booking.date)}<br>${escapeHtml(booking.time)}</td>
+        <td>${escapeHtml(booking.email || "-")}</td>
+        <td>${formatCurrency(booking.price)}</td>
+        <td>${statusBadge(booking.status)}</td>
+        <td>
+          <div class="table-actions">
+            <button class="action-btn" data-action="confirm" data-id="${booking._id}" ${booking.status === "confirmed" ? "disabled" : ""}>Confirm</button>
+            <button class="action-btn" data-action="complete" data-id="${booking._id}" ${booking.status === "completed" ? "disabled" : ""}>Complete</button>
+            <button class="action-btn danger" data-action="delete" data-id="${booking._id}">Delete</button>
+          </div>
+        </td>
+      </tr>
+    `).join("") || emptyRow(8, "No bookings found.");
+    tbody.querySelectorAll("[data-action]").forEach((button) => {
+      button.addEventListener("click", () => handleBookingAction(button.dataset.action, button.dataset.id));
+    });
+  }
+
+  async function handleBookingAction(action, id) {
+    const booking = state.bookings.find((entry) => entry._id === id);
+    if (!booking) return;
+    if (action === "delete") {
+      openDialog({
+        eyebrow: "Delete Booking",
+        title: "Remove this booking?",
+        message: `This will permanently remove ${booking.name}'s booking for ${booking.service}.`,
+        confirmLabel: "Delete",
+        confirmVariant: "danger",
+        onConfirm: async () => {
+          await fetchWithAuth(`/api/admin/bookings/${id}`, { method: "DELETE" });
+          await refreshState();
+          renderAll();
         }
-        return true;
+      });
+      return;
     }
+    const nextStatus = action === "confirm" ? "confirmed" : "completed";
+    await fetchWithAuth(`/api/admin/bookings/${id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status: nextStatus })
+    });
+    await refreshState();
+    renderAll();
+  }
 
-    // Login function for login.html
-    window.login = async function() {
-        const username = document.getElementById('username').value;
-        const password = document.getElementById('password').value;
-        const msg = document.getElementById('msg');
+  function renderServices() {
+    const container = document.getElementById("services-list");
+    if (!container) return;
+    if (!state.services.length) {
+      container.innerHTML = `<div class="panel empty-state">No services published yet.</div>`;
+      return;
+    }
+    container.innerHTML = state.services.map((service) => `
+      <article class="service-card">
+        <img src="${escapeAttribute(service.image || "/client/image/logo.png")}" alt="${escapeAttribute(service.name)}">
+        <div class="service-body">
+          <div>
+            <h3>${escapeHtml(service.name)}</h3>
+            <p class="service-meta">${escapeHtml(service.description || "No description available.")}</p>
+          </div>
+          <div class="meta-row"><strong>${formatCurrency(service.price)}</strong></div>
+          <div class="card-actions">
+            <button class="action-btn" data-service-view="${service._id}">View</button>
+            <button class="action-btn" data-service-edit="${service._id}">Edit</button>
+            <button class="action-btn danger" data-service-delete="${service._id}">Delete</button>
+          </div>
+        </div>
+      </article>
+    `).join("");
+    container.querySelectorAll("[data-service-view]").forEach((button) => {
+      button.addEventListener("click", () => viewService(button.dataset.serviceView));
+    });
+    container.querySelectorAll("[data-service-edit]").forEach((button) => {
+      button.addEventListener("click", () => openServiceModal(state.services.find((service) => service._id === button.dataset.serviceEdit)));
+    });
+    container.querySelectorAll("[data-service-delete]").forEach((button) => {
+      button.addEventListener("click", () => deleteService(button.dataset.serviceDelete));
+    });
+  }
 
-        try {
-            const response = await fetch('/api/admin/login', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username, password })
-            });
+  function renderServiceOverview() {
+    const container = document.getElementById("servicesOverview");
+    if (!container) return;
+    container.innerHTML = state.services.length ? state.services.slice(0, 4).map((service) => `
+      <div class="offer-pill">
+        <strong>${escapeHtml(service.name)}</strong>
+        <div class="service-meta">${formatCurrency(service.price)} - ${escapeHtml(service.description || "Service available")}</div>
+      </div>
+    `).join("") : `<p class="empty-state">No services available for the client website.</p>`;
+  }
 
-            if (response.ok) {
-                const { token } = await response.json();
-                localStorage.setItem('adminToken', token);
-                window.location.href = 'dashboard.html';
-            } else {
-                msg.textContent = 'Invalid credentials';
-                msg.style.display = 'block';
-            }
-        } catch (error) {
-            console.error('Login error:', error);
-            msg.textContent = 'An error occurred during login.';
-            msg.style.display = 'block';
-        }
+  async function saveService(event) {
+    event.preventDefault();
+    const id = document.getElementById("serviceId").value;
+    const payload = {
+      name: document.getElementById("serviceName").value.trim(),
+      price: Number(document.getElementById("servicePrice").value),
+      description: document.getElementById("serviceDescription").value.trim()
     };
+    await fetchWithAuth(id ? `/api/admin/services/${id}` : "/api/admin/services", {
+      method: id ? "PUT" : "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+    closeModal("#serviceModal");
+    await refreshState();
+    renderAll();
+  }
 
-    // New booking form logic
-    const serviceEl = document.getElementById("service");
-    const dateEl = document.getElementById("date");
-    const timeEl = document.getElementById("time");
-    const bookBtn = document.getElementById("bookBtn");
-    const msgEl = document.getElementById("msg");
-    const vehicleTypeSelect = document.getElementById("vehicleType");
-    const otherVehicleInput = document.getElementById("otherVehicleType");
-    const viewBookingsBtn = document.getElementById('viewBookingsBtn');
-    const bookingList = document.getElementById('bookingList');
+  function openServiceModal(service) {
+    document.getElementById("modalTitle").textContent = service ? "Edit Service" : "Add Service";
+    document.getElementById("serviceId").value = service?._id || "";
+    document.getElementById("serviceName").value = service?.name || "";
+    document.getElementById("servicePrice").value = service?.price || "";
+    document.getElementById("serviceDescription").value = service?.description || "";
+    openModal("#serviceModal");
+  }
 
-    if(viewBookingsBtn){
-        viewBookingsBtn.addEventListener('click', () => {
-            bookingList.classList.toggle('hidden');
-        });
+  function viewService(id) {
+    const service = state.services.find((entry) => entry._id === id);
+    if (!service) return;
+    setText("viewModalTitle", service.name);
+    document.getElementById("viewModalBody").innerHTML = `
+      <img src="${escapeAttribute(service.image || "/client/image/logo.png")}" alt="${escapeAttribute(service.name)}">
+      <p>${escapeHtml(service.fullDescription || service.description || "Professional car wash service.")}</p>
+    `;
+    document.getElementById("viewModalMeta").textContent = `Price: ${formatCurrency(service.price)}`;
+    openModal("#viewServiceModal");
+  }
+
+  function deleteService(id) {
+    const service = state.services.find((entry) => entry._id === id);
+    if (!service) return;
+    openDialog({
+      eyebrow: "Delete Service",
+      title: "Remove this service?",
+      message: `${service.name} will no longer be available to clients.`,
+      confirmLabel: "Delete",
+      confirmVariant: "danger",
+      onConfirm: async () => {
+        await fetchWithAuth(`/api/admin/services/${id}`, { method: "DELETE" });
+        await refreshState();
+        renderAll();
+      }
+    });
+  }
+
+  function renderOffers() {
+    const container = document.getElementById("offerList");
+    if (!container) return;
+    if (!state.offers.length) {
+      container.innerHTML = `<div class="panel empty-state">No offers published yet.</div>`;
+      return;
     }
+    container.innerHTML = state.offers.map((offer) => `
+      <article class="offer-card">
+        <div class="offer-body">
+          <div>
+            <h3>${escapeHtml(offer.name)}</h3>
+            <p class="offer-meta">${escapeHtml(offer.description || "Client-facing promotional offer.")}</p>
+          </div>
+          <div class="meta-row">
+            <strong>${escapeHtml(String(offer.discount))}% off</strong>
+            <div>Expiry: ${escapeHtml(offer.expiry || "ongoing")}</div>
+          </div>
+          <div class="card-actions">
+            <button class="action-btn" data-offer-edit="${offer._id}">Edit</button>
+            <button class="action-btn danger" data-offer-delete="${offer._id}">Delete</button>
+          </div>
+        </div>
+      </article>
+    `).join("");
+    container.querySelectorAll("[data-offer-edit]").forEach((button) => {
+      button.addEventListener("click", () => openOfferModal(state.offers.find((offer) => offer._id === button.dataset.offerEdit)));
+    });
+    container.querySelectorAll("[data-offer-delete]").forEach((button) => {
+      button.addEventListener("click", () => deleteOffer(button.dataset.offerDelete));
+    });
+  }
 
-    if (vehicleTypeSelect) {
-        vehicleTypeSelect.addEventListener("change", () => {
-            if (vehicleTypeSelect.value === "other") {
-                otherVehicleInput.style.display = "block";
-            } else {
-                otherVehicleInput.style.display = "none";
-                otherVehicleInput.value = "";
-            }
-        });
+  function renderActiveOffers() {
+    const container = document.getElementById("activeOffers");
+    if (!container) return;
+    container.innerHTML = state.offers.length ? state.offers.map((offer) => `
+      <div class="offer-pill">
+        <strong>${escapeHtml(offer.name)}</strong>
+        <div class="offer-meta">${escapeHtml(String(offer.discount))}% off - ${escapeHtml(offer.expiry || "ongoing")}</div>
+      </div>
+    `).join("") : `<p class="empty-state">No active offers available.</p>`;
+  }
+
+  async function saveOffer(event) {
+    event.preventDefault();
+    const id = document.getElementById("offerId").value;
+    const payload = {
+      name: document.getElementById("offerName").value.trim(),
+      discount: Number(document.getElementById("offerDiscount").value),
+      description: document.getElementById("offerDescription").value.trim(),
+      expiry: document.getElementById("offerExpiry").value.trim()
+    };
+    await fetchWithAuth(id ? `/api/admin/offers/${id}` : "/api/admin/offers", {
+      method: id ? "PUT" : "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+    closeModal("#offerModal");
+    await refreshState();
+    renderAll();
+  }
+
+  function openOfferModal(offer) {
+    document.getElementById("offerModalTitle").textContent = offer ? "Edit Offer" : "Add Offer";
+    document.getElementById("offerId").value = offer?._id || "";
+    document.getElementById("offerName").value = offer?.name || "";
+    document.getElementById("offerDiscount").value = offer?.discount || "";
+    document.getElementById("offerDescription").value = offer?.description || "";
+    document.getElementById("offerExpiry").value = offer?.expiry || "";
+    openModal("#offerModal");
+  }
+
+  function deleteOffer(id) {
+    const offer = state.offers.find((entry) => entry._id === id);
+    if (!offer) return;
+    openDialog({
+      eyebrow: "Delete Offer",
+      title: "Remove this offer?",
+      message: `${offer.name} will no longer appear in the admin website and client support panels.`,
+      confirmLabel: "Delete",
+      confirmVariant: "danger",
+      onConfirm: async () => {
+        await fetchWithAuth(`/api/admin/offers/${id}`, { method: "DELETE" });
+        await refreshState();
+        renderAll();
+      }
+    });
+  }
+
+  function renderAnalytics() {
+    const counts = {};
+    const revenue = {};
+    const days = {};
+    let confirmedCount = 0;
+    let confirmedRevenue = 0;
+    state.bookings.forEach((booking) => {
+      counts[booking.service] = (counts[booking.service] || 0) + 1;
+      if (booking.status === "confirmed" || booking.status === "completed") {
+        revenue[booking.service] = (revenue[booking.service] || 0) + Number(booking.price || 0);
+        confirmedCount += 1;
+        confirmedRevenue += Number(booking.price || 0);
+      }
+      if (booking.date) {
+        const weekday = new Date(booking.date).getDay();
+        if (!Number.isNaN(weekday)) days[weekday] = (days[weekday] || 0) + 1;
+      }
+    });
+    const topService = pickMaxKey(counts);
+    const peakDayIndex = pickMaxKey(days);
+    const peakDay = peakDayIndex === null ? "None" : ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][Number(peakDayIndex)];
+    const averageRevenue = state.bookings.length ? confirmedRevenue / state.bookings.length : 0;
+    const conversionRate = state.bookings.length ? (confirmedCount / state.bookings.length) * 100 : 0;
+    setText("topService", topService || "None");
+    setText("peakDay", peakDay);
+    setText("avgRevenue", formatCurrency(averageRevenue));
+    setText("conversionRate", `${conversionRate.toFixed(1)}%`);
+    renderRevenueChart(revenue);
+    renderRevenueTable(revenue, counts);
+  }
+
+  function renderRevenueChart(revenueByService) {
+    const canvas = document.getElementById("revenueChart");
+    if (!canvas) return;
+    const labels = Object.keys(revenueByService);
+    const values = Object.values(revenueByService);
+    revenueChartInstance?.destroy();
+    revenueChartInstance = new Chart(canvas, {
+      type: "doughnut",
+      data: {
+        labels: labels.length ? labels : ["No revenue"],
+        datasets: [{ data: values.length ? values : [1], backgroundColor: ["#1b7a44", "#31955a", "#63b97d", "#98d3aa", "#d7ecd9"], borderWidth: 0 }]
+      },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: "bottom" } } }
+    });
+  }
+
+  function renderRevenueTable(revenueByService, bookingCountByService) {
+    const tbody = document.getElementById("revenueTable");
+    if (!tbody) return;
+    tbody.innerHTML = Object.keys(bookingCountByService).map((serviceName) => `
+      <tr>
+        <td>${escapeHtml(serviceName)}</td>
+        <td>${bookingCountByService[serviceName]}</td>
+        <td>${formatCurrency(revenueByService[serviceName] || 0)}</td>
+      </tr>
+    `).join("") || emptyRow(3, "No analytics data yet.");
+  }
+
+  function renderReports() {
+    const summary = document.getElementById("reportSummary");
+    const actions = document.getElementById("reportActions");
+    if (!summary || !actions) return;
+    const pending = state.bookings.filter((booking) => booking.status === "pending").length;
+    const confirmedRevenue = state.bookings
+      .filter((booking) => booking.status === "confirmed" || booking.status === "completed")
+      .reduce((sum, booking) => sum + Number(booking.price || 0), 0);
+    summary.innerHTML = [
+      `Client accounts registered: ${state.clients.length}`,
+      `Services currently published: ${state.services.length}`,
+      `Confirmed or completed revenue: ${formatCurrency(confirmedRevenue)}`,
+      `Pending booking approvals: ${pending}`
+    ].map((line) => `<li>${escapeHtml(line)}</li>`).join("");
+    const actionItems = [];
+    if (pending > 0) actionItems.push(`Review ${pending} pending booking${pending > 1 ? "s" : ""}.`);
+    if (!state.offers.length) actionItems.push("Create at least one active offer to support the client website.");
+    if (!state.services.length) actionItems.push("Publish services so the client site has a complete catalog.");
+    if (!actionItems.length) actionItems.push("Operations look healthy. Continue monitoring bookings and offers.");
+    actions.innerHTML = actionItems.map((line) => `<li>${escapeHtml(line)}</li>`).join("");
+  }
+
+  function openDialog(options) {
+    const cancel = document.getElementById("dialogCancel");
+    const confirm = document.getElementById("dialogConfirm");
+    document.getElementById("dialogEyebrow").textContent = options.eyebrow || "Action";
+    document.getElementById("dialogTitle").textContent = options.title || "Confirm";
+    document.getElementById("dialogMessage").textContent = options.message || "";
+    confirm.textContent = options.confirmLabel || "Confirm";
+    confirm.className = options.confirmVariant === "danger" ? "action-btn danger" : "primary-btn";
+    cancel.classList.toggle("hidden", Boolean(options.hideCancel));
+    confirm.onclick = async () => {
+      closeModal("#dialogModal");
+      if (options.onConfirm) await options.onConfirm();
+    };
+    cancel.onclick = () => closeModal("#dialogModal");
+    openModal("#dialogModal");
+  }
+
+  function openModal(selector) { document.querySelector(selector)?.classList.remove("hidden"); }
+  function closeModal(selector) { document.querySelector(selector)?.classList.add("hidden"); }
+  function checkAuth() {
+    const token = localStorage.getItem("adminToken");
+    if (!token) {
+      window.location.href = "login.html";
+      return false;
     }
-
-    if (dateEl) {
-        dateEl.setAttribute("min", new Date().toISOString().split("T")[0]);
-    }
-    
-    function loadServicesForBooking() {
-        if (serviceEl) {
-            serviceEl.innerHTML = '<option value="">Choose Service</option>';
-            services.forEach(s => {
-                const o = document.createElement("option");
-                o.value = s.id;
-                o.textContent = `${s.name} - ₱${s.price}`;
-                o.dataset.price = s.price;
-                o.dataset.duration = s.duration;
-                o.dataset.description = s.description;
-                serviceEl.appendChild(o);
-            });
-        }
-    }
-
-    function formatTime12(time24) {
-        if(!time24) return "";
-        const [hour, minute] = time24.split(":");
-        let h = parseInt(hour);
-        const ampm = h >= 12 ? "PM" : "AM";
-        h = h % 12 || 12;
-        return `${h}:${minute} ${ampm}`;
-    }
-
-    function showErrorPopup(message) {
-        const overlay = document.createElement("div");
-        overlay.style = "position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); display:flex; align-items:center; justify-content:center; z-index:9999;";
-
-        overlay.innerHTML = `
-            <div style="background:white; padding:20px; border-radius:12px; text-align:center; max-width:300px; color:#333;">
-                <h3 style="color:#b91c1c; margin-bottom:10px;">Invalid Time</h3>
-                <p style="margin:15px 0; color:#555;">${message}</p>
-                <button id="errorOkBtn" class="primary" style="padding:8px 16px; background-color:#b91c1c; border:none; color:white;">OK</button>
-            </div>
-        `;
-
-        document.body.appendChild(overlay);
-
-        overlay.querySelector("#errorOkBtn").onclick = () => overlay.remove();
-        overlay.onclick = (e) => { if(e.target === overlay) overlay.remove(); };
-    }
-
-    function showBookingPopup(message, onConfirm) {
-        const overlay = document.createElement("div");
-        overlay.style = "position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); display:flex; align-items:center; justify-content:center; z-index:9999;";
-        overlay.innerHTML = `
-            <div style="background:white; padding:20px; border-radius:12px; text-align:center; max-width:300px; color:#333;">
-                <p>${message}</p>
-                <div style="margin-top:15px; display:flex; gap:10px; justify-content:center;">
-                    <button id="confirmBtn" class="primary" style="padding:8px 16px;">Confirm</button>
-                    <button id="cancelBtn" style="padding:8px 16px;">Cancel</button>
-                </div>
-            </div>
-        `;
-        document.body.appendChild(overlay);
-
-        overlay.querySelector("#confirmBtn").onclick = () => {
-            onConfirm();
-            overlay.remove();
-        };
-        overlay.querySelector("#cancelBtn").onclick = () => overlay.remove();
-    }
-
-    async function submitBooking() {
-        const svcOpt = serviceEl.selectedOptions[0];
-        const date = dateEl.value;
-        const time = timeEl.value;
-        const vehicleType = vehicleTypeSelect.value === "other" ? otherVehicleInput.value : vehicleTypeSelect.value;
-        const vehicleModel = document.getElementById("vehicleModel").value;
-        const customerName = document.getElementById("customerName").value;
-        const email = document.getElementById("email").value;
-
-        if (!svcOpt.value || !date || !time || !customerName) return showMsg("Please complete the form.", false);
-
-        if (time < "09:00" || time > "18:00") {
-            return showErrorPopup("Please select a time between 9:00 AM to 6:00 PM.");
-        }
-
-        const formattedTime = formatTime12(time);
-
-        const newBooking = {
-            id: '_' + Math.random().toString(36).substr(2, 9),
-            service: svcOpt.textContent.split(" - ")[0],
-            vehicle: `${vehicleType} - ${vehicleModel}`,
-            date,
-            time: formattedTime,
-            price: svcOpt.dataset.price,
-            status: "confirmed", // Walk-in bookings are confirmed by default
-            name: customerName,
-            email: email,
-        };
-
-        showBookingPopup(`<b>Service:</b> ${svcOpt.textContent}<br><b>Time:</b> ${formattedTime}<br>Proceed?`, async () => {
-            try {
-                const response = await fetchWithAuth('/api/book', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(newBooking)
-                });
-                const result = await response.json();
-
-                if (response.ok) {
-                    await loadData();
-                    renderBookings();
-                    updateStats();
-                    clearBookingForm();
-                    showSuccessPopup("Booking confirmed!");
-                } else {
-                    showMsg(result.message || "Booking failed.", false);
-                }
-            } catch (error) {
-                console.error("Booking error:", error);
-                showMsg("An error occurred. Please try again.", false);
-            }
-        });
-    }
-
-    function clearBookingForm() {
-        serviceEl.value = "";
-        vehicleTypeSelect.value = "";
-        
-        dateEl.value = "";
-        timeEl.value = "";
-        document.getElementById("vehicleModel").value = "";
-        document.getElementById("plateNumber").value = "";
-        document.getElementById("customerName").value = "";
-        document.getElementById("email").value = "";
-        document.getElementById("notes").value = "";
-        
-        if (otherVehicleInput) {
-            otherVehicleInput.value = "";
-            otherVehicleInput.style.display = "none";
-        }
-
-        const pricePreview = document.getElementById("pricePreview");
-        if (pricePreview) pricePreview.textContent = "";
-    }
-    
-    function showConfirmPopup(message, onConfirm) {
-        const overlay = document.createElement("div");
-        overlay.className = 'modal-backdrop show'; 
-        overlay.style.zIndex = "10000";
-        
-        overlay.innerHTML = `
-            <div class="modal-card" style="border-top: 5px solid #28a745; text-align:center;">
-                <h3 style="color: #28a745;">Confirm Reset</h3>
-                <p style="margin: 15px 0; color: #555;">${message}</p>
-                <div style="display:flex; gap:10px; justify-content:center;">
-                    <button id="confirmResetYes" class="primary" style="padding:10px 20px; background-color: #28a745; border:none;">Yes, Reset</button>
-                    <button id="confirmResetNo" class="btn-cancel" style="padding:10px 20px;">Cancel</button>
-                </div>
-            </div>
-        `;
-        document.body.appendChild(overlay);
-
-        overlay.querySelector("#confirmResetYes").onclick = () => {
-            onConfirm();
-            overlay.remove();
-        };
-        overlay.querySelector("#confirmResetNo").onclick = () => overlay.remove();
-        
-        overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
-    }
-
-    if (bookBtn) bookBtn.addEventListener("click", submitBooking);
-
-    const resetBtn = document.getElementById("resetBtn");
-    if (resetBtn) {
-        resetBtn.addEventListener("click", () => {
-            showConfirmPopup(
-                "Are you sure you want to clear all the booking details you've entered?",
-                () => {
-                    clearBookingForm();
-                    showMsg("Form cleared successfully.", true);
-                }
-            );
-        });
-    }
-
-    function showMsg(txt, success = true) {
-        if (!msgEl) return;
-        msgEl.textContent = txt;
-        msgEl.style.color = success ? "#0f5132" : "#b91c1c";
-        msgEl.style.display = "block";
-        setTimeout(() => { msgEl.style.display = "none"; }, 4000);
-    }
-    
-    // Start
-    if (checkAuth()) {
-        showPage('dashboard').then(() => {
-            loadServicesForBooking();
-        });
-    }
-
+    return true;
+  }
+  function sortByCreatedAtDesc(a, b) { return new Date(b.createdAt || 0) - new Date(a.createdAt || 0); }
+  function vehicleDisplay(booking) {
+    const parts = [booking.vehicleType, booking.vehicleModel].filter(Boolean);
+    return booking.vehicle || parts.join(" - ") || "-";
+  }
+  function pickMaxKey(record) {
+    const entries = Object.entries(record);
+    if (!entries.length) return null;
+    return entries.reduce((best, current) => current[1] > best[1] ? current : best)[0];
+  }
+  function formatCurrency(value) {
+    return `PHP ${Number(value || 0).toLocaleString("en-PH", { maximumFractionDigits: 0 })}`;
+  }
+  function statusBadge(status) {
+    const normalized = (status || "pending").toLowerCase();
+    return `<span class="status-badge status-${escapeAttribute(normalized)}">${escapeHtml(normalized)}</span>`;
+  }
+  function emptyRow(columns, message) {
+    return `<tr><td colspan="${columns}" class="empty-state">${escapeHtml(message)}</td></tr>`;
+  }
+  function setText(id, value) {
+    const element = document.getElementById(id);
+    if (element) element.textContent = value;
+  }
+  function escapeHtml(value) {
+    return String(value ?? "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+  }
+  function escapeAttribute(value) { return escapeHtml(value); }
 })();
