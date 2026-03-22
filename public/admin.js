@@ -1,5 +1,3 @@
-document.addEventListener('DOMContentLoaded', function() {
-    (function () {
         // localStorage keys
         const LS_BOOKINGS = 'admin_bookings_v1',
               LS_SERVICES = 'admin_services_v1',
@@ -25,7 +23,7 @@ document.addEventListener('DOMContentLoaded', function() {
             logout: document.getElementById('btnLogout')
         };
 
-    // Data (loaded from API)
+// Data (loaded from API)
     let bookings = [];
     let offers = JSON.parse(localStorage.getItem(LS_OFFERS)) || [
         { id: 'off1', name: '10% off Mon-Wed', discount: 10 }
@@ -368,7 +366,7 @@ function renderServicesOverview() {
         return;
     }
     el.innerHTML = '';
-    services.slice(0, 6).forEach(s => { // Show top 6 services
+    services.slice(0, 10).forEach(s => { // Show top 10 services
         const card = document.createElement('div');
         card.className = 'service-card card';
         card.style = 'display:flex;flex-direction:column;padding:12px;gap:8px;';

@@ -1,7 +1,112 @@
+function showServerErrorToast(message) {
+    const toast = document.createElement('div');
+    toast.className = 'server-error-toast';
+    toast.textContent = message;
+    document.body.appendChild(toast);
+    setTimeout(() => {
+        toast.remove();
+    }, 3000);
+}
+
 const LS_BOOK = "demoBookings_v1";
 const LS_FEEDBACK = "demoFeedback_v1"; 
 
-let servicesList = [];
+let servicesList = []; // Global services cache
+
+// FORCE FALLBACK - immediate load
+servicesList = [
+  {
+      _id: "basic_wash",
+      name: "Basic Wash",
+      price: 200,
+      duration: 30,
+      description: "Quick exterior wash",
+      fullDescription: "Our Basic Wash includes exterior hand wash, rims and tire cleaning, hand drying, and light interior vacuum.",
+      image: "./image/basic_wash.jpg",
+  },
+  {
+      _id: "deluxe_wash",
+      name: "Deluxe Wash",
+      price: 400,
+      duration: 60,
+      description: "Full exterior & interior clean", 
+      fullDescription: "Deluxe Wash includes everything in Basic plus detailed interior cleaning.",
+      image: "./image/Deluxe_Wash.jpg",
+  },
+  {
+      _id: "wax_polish",
+      name: "Wax & Polish",
+      price: 800,
+      duration: 90,
+      description: "Protect and shine your car",
+      fullDescription: "Premium carnauba wax and polish protection.",
+      image: "./image/Wax_&_Polish.jpg",
+  },
+  {
+      _id: "interior_detail",
+      name: "Interior Detailing",
+      price: 700,
+      duration: 120,
+      description: "Deep interior cleaning",
+      fullDescription: "Complete interior shampoo and conditioning.",
+      image: "./image/Interior_Detailing.jpg",
+  },
+  {
+      _id: "engine_clean",
+      name: "Engine Cleaning", 
+      price: 900,
+      duration: 60,
+      description: "Safe engine wash",
+      fullDescription: "Engine bay degrease and protection.",
+      image: "./image/Engine_Cleaning.jpg",
+  },
+  {
+      _id: "tire_shine",
+      name: "Tire & Rim Shine",
+      price: 150,
+      duration: 20,
+      description: "Clean & glossy tires",
+      fullDescription: "Premium tire dressing and rim cleaning.",
+      image: "./image/tire_shine.jpg",
+  },
+  {
+      _id: "headlight_restore",
+      name: "Headlight Restoration",
+      price: 300,
+      duration: 45,
+      description: "Restore headlight clarity",
+      fullDescription: "Remove oxidation, restore night visibility.",
+      image: "./image/Headlight_restoration.jpg",
+  },
+  {
+      _id: "scratch_removal",
+      name: "Scratch Removal",
+      price: 1200,
+      duration: 90,
+      description: "Minor scratch repair",
+      fullDescription: "Paint correction for light swirls/scratches.",
+      image: "./image/scratch_removal.jpg",
+  },
+  {
+      _id: "ceramic_coating",
+      name: "Ceramic Coating",
+      price: 5000,
+      duration: 180,
+      description: "Long-term paint protection",
+      fullDescription: "Hydrophobic nano coating for 2+ years protection.",
+      image: "./image/Ceramic_coating.jpg",
+  },
+  {
+      _id: "special_offer",
+      name: "Special Offer Service",
+      price: 999,
+      duration: 180,
+      description: "Limited-time premium service",
+      fullDescription: "Full Deluxe + Wax + Interior + Engine special!",
+      image: "./image/sp.png",
+  }
+];
+console.log('✅ Services fallback loaded:', servicesList.length);
 
 // Fetch services dynamically from server
 async function loadServicesDynamic() {
@@ -9,104 +114,116 @@ async function loadServicesDynamic() {
     const response = await fetch('/api/services');
     if (response.ok) {
       servicesList = await response.json();
+      console.log('Services loaded from server:', servicesList.length);
     } else {
-      console.warn('Failed to load services, using fallback');
-      // Fallback to hardcoded
+      console.warn('Server /api/services failed (' + response.status + '), using fallback data');
       servicesList = [
     {
-        id: "basic_wash",
+        _id: "basic_wash",
         name: "Basic Wash",
         price: 200,
         duration: 30,
         description: "Quick exterior wash",
         fullDescription: "Our Basic Wash includes exterior hand wash, rims and tire cleaning, hand drying, and light interior vacuum. Perfect for weekly maintenance to keep your car looking fresh.",
-        image: "../image/basic_wash.jpg",
+        image: "./image/basic_wash.jpg",
     },
     {
-        id: "deluxe_wash",
+        _id: "deluxe_wash",
         name: "Deluxe Wash",
         price: 400,
         duration: 60,
         description: "Full exterior & interior clean",
         fullDescription: "Deluxe Wash includes everything in Basic Wash plus detailed interior cleaning, dashboard wipe down, interior windows, and tire dressing. Ideal for complete cleaning experience.",
-        image: "../image/Deluxe_Wash.jpg",
+        image: "./image/Deluxe_Wash.jpg",
     },
     {
-        id: "wax_polish",
+        _id: "wax_polish",
         name: "Wax & Polish",
         price: 800,
         duration: 90,
         description: "Protect and shine your car",
         fullDescription: "Applies premium carnauba wax and polish to exterior after thorough wash. Enhances paint shine, adds protective layer against UV and dirt, includes interior vacuuming.",
-        image: "../image/Wax_&_Polish.jpg",
+        image: "./image/Wax_&_Polish.jpg",
     },
     {
-        id: "interior_detail",
+        _id: "interior_detail",
         name: "Interior Detailing",
         price: 700,
         duration: 120,
         description: "Deep interior cleaning",
         fullDescription: "Complete interior cleaning including vacuuming carpets/seats, shampooing fabric seats, cleaning leather, wiping dashboards, vents, and panels. Removes odors and stains effectively.",
-        image: "../image/Interior_Detailing.jpg",
+        image: "./image/Interior_Detailing.jpg",
     },
     {
-        id: "engine_clean",
+        _id: "engine_clean",
         name: "Engine Cleaning",
         price: 900,
         duration: 60,
         description: "Safe engine wash",
         fullDescription: "Careful engine compartment cleaning using degreasers and high-pressure water where safe. Removes grime and protects engine parts for better performance and longevity.",
-        image: "../image/Engine_Cleaning.jpg",
+        image: "./image/Engine_Cleaning.jpg",
     },
     {
-        id: "tire_shine",
+        _id: "tire_shine",
         name: "Tire & Rim Shine",
         price: 150,
         duration: 20,
         description: "Clean & glossy tires",
         fullDescription: "We clean and shine all tires and rims using premium tire dressing products. Removes dirt and adds long-lasting glossy finish.",
-        image: "../image/tire_shine.jpg",
+        image: "./image/tire_shine.jpg",
     },
     {
-        id: "headlight_restore",
+        _id: "headlight_restore",
         name: "Headlight Restoration",
         price: 300,
         duration: 45,
         description: "Restore headlight clarity",
         fullDescription: "Removes oxidation and yellowing from headlights, restoring brightness and safety during night driving.",
-        image: "../image/Headlight_restoration.jpg",
+        image: "./image/Headlight_restoration.jpg",
     },
     {
-        id: "scratch_removal",
+        _id: "scratch_removal",
         name: "Scratch Removal",
         price: 1200,
         duration: 90,
         description: "Minor scratch repair",
         fullDescription: "Removes minor scratches and swirls using polishing compounds. Improves car appearance without repainting.",
-        image: "../image/Scratch_removal.jpg",
+        image: "./image/scratch_removal.jpg",
     },
     {
-        id: "ceramic_coating",
+        _id: "ceramic_coating",
         name: "Ceramic Coating",
         price: 5000,
         duration: 180,
         description: "Long-term paint protection",
         fullDescription: "Applies premium ceramic coating to protect paint from UV rays, dirt, and minor scratches. Enhances gloss and makes cleaning easier. Includes wash and prep.",
-        image: "../image/Ceramic_coating.jpg",
+        image: "./image/Ceramic_coating.jpg",
     },
     {
-        id: "special_offer",
+        _id: "special_offer",
         name: "Special Offer Service",
         price: 999,
         duration: 180,
         description: "Limited-time premium service",
         fullDescription: "Our Special Offer Service is designed for car enthusiasts who want everything done in one go! This includes full exterior wash, premium wax & polish, deep interior detailing, tire & rim shine, engine cleaning, headlight restoration, and minor scratch removal. Perfect for restoring your vehicle to showroom condition. This service is only available for a limited period, so grab it while you can!",
-        image: "../image/sp.png",
+        image: "./image/sp.png",
     },
 ];
     }
+    if (document.readyState !== "loading") {
+      loadServices();
+      if (typeof loadBookings === "function") {
+        loadBookings();
+      }
+    }
   } catch (error) {
     console.error("Error loading services:", error);
+    if (document.readyState !== "loading") {
+      loadServices();
+      if (typeof loadBookings === "function") {
+        loadBookings();
+      }
+    }
   }
 }
 
@@ -124,7 +241,116 @@ function nowId() {
     return '_' + Math.random().toString(36).substr(2, 9);
 }
 
+function getClientIdentity() {
+    const username = localStorage.getItem("clientUsername") || "";
+    const email = localStorage.getItem("clientEmail") || "";
+    const legacyUsername = localStorage.getItem("clientIdentityUsername") || username;
+    const legacyEmail = localStorage.getItem("clientIdentityEmail") || email;
+
+    if (legacyUsername && !localStorage.getItem("clientIdentityUsername")) {
+        localStorage.setItem("clientIdentityUsername", legacyUsername);
+    }
+    if (legacyEmail && !localStorage.getItem("clientIdentityEmail")) {
+        localStorage.setItem("clientIdentityEmail", legacyEmail);
+    }
+
+    return { username, email, legacyUsername, legacyEmail };
+}
+
+function buildIdentityQuery() {
+    const { username, email, legacyUsername, legacyEmail } = getClientIdentity();
+    const params = new URLSearchParams();
+
+    if (username) params.set("username", username);
+    if (email) params.set("email", email);
+    if (legacyUsername) params.set("legacyUsername", legacyUsername);
+    if (legacyEmail) params.set("legacyEmail", legacyEmail);
+
+    return params.toString();
+}
+
+function compressImageForFeedback(file, maxDimension = 1280, quality = 0.72) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+
+        reader.onerror = () => reject(new Error("Could not read the selected image."));
+        reader.onload = () => {
+            const img = new Image();
+            img.onerror = () => reject(new Error("Could not process the selected image."));
+            img.onload = () => {
+                let { width, height } = img;
+
+                if (width > height && width > maxDimension) {
+                    height = Math.round((height * maxDimension) / width);
+                    width = maxDimension;
+                } else if (height >= width && height > maxDimension) {
+                    width = Math.round((width * maxDimension) / height);
+                    height = maxDimension;
+                }
+
+                const canvas = document.createElement("canvas");
+                canvas.width = width;
+                canvas.height = height;
+
+                const ctx = canvas.getContext("2d");
+                if (!ctx) {
+                    reject(new Error("Could not prepare the image for upload."));
+                    return;
+                }
+
+                ctx.drawImage(img, 0, 0, width, height);
+                resolve(canvas.toDataURL("image/jpeg", quality));
+            };
+
+            img.src = reader.result;
+        };
+
+        reader.readAsDataURL(file);
+    });
+}
+
+function syncSelectedServiceOption(serviceId, serviceName, price = "", duration = "") {
+    const serviceSelect = document.getElementById("service");
+    if (!serviceSelect) return;
+
+    const normalizedName = `${serviceName || ""}`.trim().toLowerCase();
+    const normalizedId = `${serviceId || ""}`.trim();
+
+    let matchingOption = Array.from(serviceSelect.options).find(option => {
+        const optionName = option.textContent.split(" - ")[0].trim().toLowerCase();
+        return (normalizedId && option.value === normalizedId) || (normalizedName && optionName === normalizedName);
+    });
+
+    if (!matchingOption && (normalizedName || normalizedId)) {
+        matchingOption = document.createElement("option");
+        matchingOption.value = normalizedId || `saved_${Date.now()}`;
+        matchingOption.textContent = normalizedName
+            ? `${serviceName}${price ? ` - ₱${price}` : ""}`
+            : matchingOption.value;
+        if (price !== "") matchingOption.dataset.price = price;
+        if (duration !== "") matchingOption.dataset.duration = duration;
+        serviceSelect.appendChild(matchingOption);
+    }
+
+    if (!matchingOption) return;
+
+    serviceSelect.value = matchingOption.value;
+    serviceSelect.dataset.selectedServiceName = serviceName || "";
+    serviceSelect.dataset.selectedServiceValue = matchingOption.value;
+    serviceSelect.dispatchEvent(new Event("change"));
+}
+
 document.addEventListener("DOMContentLoaded", async () => {
+    const username = localStorage.getItem("clientUsername");
+    const token = localStorage.getItem("clientToken");
+    if (!username || !token) {
+        showServerErrorToast("Please log in to access dashboard.");
+        setTimeout(() => {
+        window.location.href = '/client/login.html';
+        }, 2000);
+        return;
+    }
+    console.log('Dashboard loaded for user:', username);
     // Mobile menu toggle
     const hamburger = document.getElementById('hamburger');
     const sidebar = document.querySelector('.sidebar');
@@ -169,22 +395,34 @@ document.addEventListener("DOMContentLoaded", async () => {
     const sidebarProfilePic = document.querySelector(".sidebar-profile-pic"); // Ensure you have this class in HTML
     const headerProfilePic = document.querySelector(".header-profile-pic");   // Ensure you have this class in HTML
 
-    // Sidebar navigation
+// Sidebar navigation - with active states
+    let currentActiveBtn = null;
     function initSidebar() {
-      const sidebar = document.querySelector('.sidebar');
-      if (sidebar) {
-        sidebar.querySelectorAll('button:not(#logoutBtn)').forEach(btn => {
+      const btnMap = {
+        'overviewBtn': 'dashboardPage',
+        'bookServiceBtn': 'bookPage',
+        'myBookingsBtn': 'bookingsPage',
+        'feedbackBtn': 'feedbackPage',
+        'profileBtn': 'profileViewPage'
+      };
+      Object.entries(btnMap).forEach(([btnId, pageId]) => {
+        const btn = document.getElementById(btnId);
+        if (btn) {
           btn.addEventListener('click', () => {
-            const text = btn.textContent.toLowerCase().trim();
-            let page;
-            if (text === 'overview') page = 'dashboardPage';
-            else if (text.includes('book service')) page = 'bookPage';
-            else if (text.includes('bookings')) page = 'bookingsPage';
-            else if (text.includes('feedback')) page = 'feedbackPage';
-            else if (text.includes('profile')) page = 'profileViewPage';
-            if (page) showPage(page);
+            console.log(`Button clicked: ${btnId} → ${pageId}`);
+            showPage(pageId);
+            // Visual feedback
+            if (currentActiveBtn) currentActiveBtn.classList.remove('active');
+            btn.classList.add('active');
+            currentActiveBtn = btn;
           });
-        });
+        }
+      });
+      // Default: activate Overview
+      const overviewBtn = document.getElementById('overviewBtn');
+      if (overviewBtn) {
+        overviewBtn.classList.add('active');
+        currentActiveBtn = overviewBtn;
       }
     }
 
@@ -215,11 +453,18 @@ document.addEventListener("DOMContentLoaded", async () => {
     const modalBook = document.getElementById("modalBook");
     const logoutBtn = document.getElementById("logoutBtn");
 
+    // Force close any stuck modal on page load
+    if (modal) {
+        modal.classList.remove("show");
+        modal.setAttribute("aria-hidden", "true");
+        console.log("Modal force-closed on load");
+    }
+
     const feedbackForm = document.getElementById("feedbackForm");
     const myFeedbacksEl = document.getElementById("myFeedbacks");
 
     // Profile View Page Elements
-    const viewName = document.getElementById("viewName");
+    const profileFullNameEl = document.getElementById("profileFullName");
     const viewEmail = document.getElementById("viewEmail");
     const viewNumber = document.getElementById("viewNumber");
     const viewUsernameHeader = document.getElementById("viewUsername");
@@ -277,16 +522,34 @@ loadProfileView();
     }
 
     if (dateEl) {
-        dateEl.setAttribute("min", new Date().toISOString().split("T")[0]);
+        const today = new Date().toISOString().split("T")[0];
+        dateEl.setAttribute("min", today);
+        dateEl.addEventListener('change', function() {
+            // Auto-suggest next available time based on service duration
+            const selectedService = serviceEl.selectedOptions[0];
+            if (selectedService && selectedService.dataset.duration) {
+                const duration = parseInt(selectedService.dataset.duration);
+                console.log('Service duration:', duration, 'mins');
+            }
+        });
     }
 
     if (profileForm) {
         profileForm.addEventListener("submit", (e) => {
             e.preventDefault();
+            const currentUsername = localStorage.getItem("clientUsername") || "";
+            const currentEmail = localStorage.getItem("clientEmail") || "";
             const updatedUser = document.getElementById("profileUsername").value || "guest";
             const updatedName = document.getElementById("profileName").value || "Guest";
             const updatedEmail = document.getElementById("profileEmail").value || "-";
             const updatedNumber = document.getElementById("profileNumber").value || "-";
+
+            if (currentUsername && !localStorage.getItem("clientIdentityUsername")) {
+                localStorage.setItem("clientIdentityUsername", currentUsername);
+            }
+            if (currentEmail && !localStorage.getItem("clientIdentityEmail")) {
+                localStorage.setItem("clientIdentityEmail", currentEmail);
+            }
 
             localStorage.setItem("clientUsername", updatedUser);
             localStorage.setItem("clientName", updatedName);
@@ -357,26 +620,73 @@ loadProfileView();
             const el = document.getElementById(id);
             if (el) el.style.display = id === pageId ? "block" : "none";
         });
+
+        const activeButtonMap = {
+            dashboardPage: "overviewBtn",
+            bookPage: "bookServiceBtn",
+            bookingsPage: "myBookingsBtn",
+            feedbackPage: "feedbackBtn",
+            profileViewPage: "profileBtn",
+            profileEditPage: "profileBtn"
+        };
+
+        const nextActiveBtn = document.getElementById(activeButtonMap[pageId]);
+        if (currentActiveBtn && currentActiveBtn !== nextActiveBtn) {
+            currentActiveBtn.classList.remove("active");
+        }
+        if (nextActiveBtn) {
+            nextActiveBtn.classList.add("active");
+            currentActiveBtn = nextActiveBtn;
+        }
     }
     window.showPage = showPage;
 
     if (logoutBtn) {
         logoutBtn.addEventListener("click", () => {
             localStorage.clear();
-window.location.href = "/client/index.html";
+window.location.href = "/client/login.html";
         });
     }
 
-    function closeModal() {
-        modal.classList.remove("show");
-        modal.setAttribute("aria-hidden", "true");
+function closeModal() {
+        if (modal) {
+            modal.classList.remove("show");
+            modal.style.display = 'none';
+            modal.setAttribute("aria-hidden", "true");
+            document.body.style.overflow = ''; // Restore scroll
+            const sidebarOverlay = document.querySelector('.sidebar-overlay');
+            if (sidebarOverlay) {
+                sidebarOverlay.classList.remove('active');
+            }
+            console.log('✅ Modal properly closed with overlay cleanup');
+        }
     }
     function openModal() {
-        modal.classList.add("show");
-        modal.setAttribute("aria-hidden", "false");
+        if (modal) {
+            modal.style.display = "";
+            modal.classList.add("show");
+            modal.setAttribute("aria-hidden", "false");
+            document.body.style.overflow = "hidden";
+            console.log('Modal opened');
+        }
     }
-    if (modalClose) modalClose.addEventListener("click", closeModal);
-    if (modal) modal.addEventListener("click", e => { if (e.target === modal) closeModal(); });
+// Robust event delegation for modal (prevents timing issues)
+    document.addEventListener('click', function(e) {
+        if (e.target.id === 'modalClose' || e.target.matches('.modal-backdrop')) {
+            console.log('Modal close clicked');
+            closeModal();
+        }
+        if (e.target.id === 'modalBook') {
+            console.log('Modal book clicked');
+            const serviceId = modalBook.dataset.serviceId;
+            if (serviceId) {
+                showPage("bookPage");
+                serviceEl.value = serviceId;
+                serviceEl.dispatchEvent(new Event("change"));
+            }
+            closeModal();
+        }
+    });
     
     if (modalBook) {
         modalBook.addEventListener("click", () => {
@@ -389,76 +699,122 @@ window.location.href = "/client/index.html";
         });
     }
 
-    function loadServices() {
-    if (serviceEl) {
-            serviceEl.innerHTML = '<option value="">Choose Service</option>';
-            servicesList.forEach(s => {
-                const o = document.createElement("option");
-                o.value = s.id;
-                o.textContent = `${s.name} - ₱${s.price}`;
-                o.dataset.price = s.price;
-                o.dataset.duration = s.duration;
-                o.dataset.description = s.description;
-                serviceEl.appendChild(o);
-            });
-            
-            // Service change handler for preview
-            serviceEl.onchange = () => {
-                const opt = serviceEl.selectedOptions[0];
-                if (opt.value) {
-                    const pricePreview = document.getElementById('pricePreview');
-                    const serviceDetails = document.getElementById('serviceDetails');
-                    if (pricePreview) pricePreview.textContent = `₱${opt.dataset.price}`;
-                    if (serviceDetails) serviceDetails.textContent = opt.dataset.description;
-                } else {
-                    const pricePreview = document.getElementById('pricePreview');
-                    if (pricePreview) pricePreview.textContent = '';
-                }
-            };
-        }
+function loadServices() {
+    console.log('🔧 loadServices() called, servicesList:', servicesList.length);
+    
+    const servicesOverview = document.getElementById('servicesOverview');
+    const serviceEl = document.getElementById('service');
+    const previousServiceValue = serviceEl ? (serviceEl.dataset.selectedServiceValue || serviceEl.value) : "";
+    const previousServiceName = serviceEl && serviceEl.selectedOptions[0]
+        ? serviceEl.selectedOptions[0].textContent.split(" - ")[0].trim().toLowerCase()
+        : ((serviceEl && serviceEl.dataset.selectedServiceName) || "").trim().toLowerCase();
+    
+    if (!servicesOverview) {
+        console.error('❌ servicesOverview not found!');
+        return;
+    }
+    
+    // CRITICAL FIX: Complete loading cleanup - ensure services render IMMEDIATELY
+    servicesOverview.innerHTML = ''; // Wipe everything first
+    servicesOverview.classList.remove('loading', 'loading-spinner');
+    servicesOverview.style.minHeight = '0';
+    servicesOverview.style.display = 'grid';
+    servicesOverview.style.gridTemplateColumns = 'repeat(auto-fit, minmax(220px, 1fr))';
+    servicesOverview.style.gap = '14px';
+    
+    console.log('✅ Services container reset and ready');
 
-        if (servicesOverview) {
-            servicesOverview.innerHTML = "";
-            servicesList.forEach(s => {
-                const card = document.createElement("div");
-                card.className = "service-card card";
-                card.style = "display:flex; flex-direction:column; padding:12px; gap:8px;";
-                card.innerHTML = `
-                    <div style="height:120px;border-radius:10px;overflow:hidden;display:flex;align-items:center;justify-content:center;background:#f6fff8">
-                        <img src="${s.image}" alt="${escapeHtml(s.name)}" style="max-height:100%; max-width:100%; object-fit:contain;">
-                    </div>
-                    <div>
-                        <h4 style="margin:6px 0 4px">${escapeHtml(s.name)}</h4>
-                        <div class="small muted">₱${s.price} • ${s.duration} mins</div>
-                    </div>
-                    <div style="margin-top:auto;display:flex;justify-content:flex-end">
-                        <button class="primary btn-view">View</button>
+    // Populate dropdown
+    if (serviceEl) {
+        serviceEl.innerHTML = '<option value="">Choose Service</option>';
+        servicesList.forEach(s => {
+            const o = document.createElement("option");
+            o.value = s._id;
+            o.textContent = `${s.name} - ₱${s.price}`;
+            o.dataset.price = s.price;
+            o.dataset.duration = s.duration;
+            o.dataset.description = s.description;
+            serviceEl.appendChild(o);
+        });
+        
+        // NEW: Live price preview and time validation
+        serviceEl.onchange = function() {
+            const selected = this.selectedOptions[0];
+            const pricePreview = document.getElementById('pricePreview');
+            if (pricePreview && selected) {
+                pricePreview.textContent = `₱${selected.dataset.price || "0"}`;
+            }
+            
+            // Keep the guidance aligned with the accepted booking window.
+            if (selected && selected.dataset.duration) {
+                showMsg("Booking hours are 09:00 AM to 06:00 PM only.", true);
+            }
+        };
+        console.log('✅ Dropdown populated with live preview');
+    }
+
+    if (serviceEl && (previousServiceValue || previousServiceName)) {
+        syncSelectedServiceOption(previousServiceValue, serviceEl.dataset.selectedServiceName || previousServiceName);
+    }
+
+    // Populate cards
+    servicesList.forEach((s, index) => {
+        const card = document.createElement("div");
+        card.className = "service-card card";
+        card.style = "display:flex; flex-direction:column; padding:12px; gap:8px;";
+        card.innerHTML = `
+            <div style="height:120px;border-radius:10px;overflow:hidden;display:flex;align-items:center;justify-content:center;background:#f6fff8">
+                <img src="${s.image}" alt="${escapeHtml(s.name)}" style="max-height:100%; max-width:100%; object-fit:contain;" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTIwIiBoZWlnaHQ9IjEyMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjZmZmY4Ii8+PHRleHQgeD0iNTAlIiB5PSI5NSUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzRhN2EyMSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPkltYWdlPC90ZXh0Pjwvc3ZnPg==';">
+            </div>
+            <div>
+                <h4 style="margin:6px 0 4px">${escapeHtml(s.name)}</h4>
+                <p class="small muted" style="margin-top:8px;">${escapeHtml(s.description || "Professional care for a cleaner, fresher vehicle.")}</p>
+                <div class="small muted">₱${s.price} • ${s.duration} mins</div>
+            </div>
+            <div style="margin-top:auto;display:flex;justify-content:flex-end">
+                <button class="primary btn-view">View</button>
+            </div>
+        `;
+        
+        // Safe modal bindings
+        card.querySelector(".btn-view").onclick = () => {
+            if (modalTitle && modalBody && modalMeta && modalBook) {
+                modalTitle.textContent = s.name;
+                modalBody.innerHTML = `
+                    <div style="text-align:center;margin-bottom:12px"><img src="${s.image}" alt="${escapeHtml(s.name)}" style="max-width:100%;border-radius:8px;" onerror="this.style.display='none';"></div>
+                    <p style="margin-bottom:12px;">${escapeHtml(s.fullDescription || s.description || "Professional car care service.")}</p>
+                    <div style="background:#f7fbf7;border:1px solid #dcefdc;border-radius:12px;padding:12px;display:grid;gap:8px;">
+                        <div><strong>Why customers choose this service</strong></div>
+                        <div class="small muted">Reliable cleaning, careful handling, and a finish designed to keep your vehicle looking fresh and well-maintained.</div>
+                        <div class="small muted">A good choice for drivers who want comfort, convenience, and a more satisfying car wash experience.</div>
                     </div>
                 `;
-                card.querySelector(".btn-view").addEventListener("click", () => {
-                    modalTitle.textContent = s.name;
-                    modalBody.innerHTML = `<div style="text-align:center;margin-bottom:10px"><img src="${s.image}" style="max-width:100%;border-radius:8px;"></div><p>${s.fullDescription}</p>`;
-                    modalMeta.innerHTML = `<strong>Price:</strong> ₱${s.price} &nbsp; <strong>Duration:</strong> ${s.duration} mins`;
-                    modalBook.dataset.serviceId = s.id;
-                    openModal();
-                });
-                servicesOverview.appendChild(card);
-            });
-        }
-    }
+                modalMeta.innerHTML = `<strong>Price:</strong> ₱${s.price} &nbsp; <strong>Duration:</strong> ${s.duration} mins`;
+                modalBook.dataset.serviceId = s._id;
+                if (typeof openModal === 'function') openModal();
+            }
+        };
+        
+        servicesOverview.appendChild(card);
+        console.log(`✅ Added service ${index+1}: ${s.name}`);
+    });
+    
+    console.log('🎉 loadServices() complete!');
+}
 
 let editingBookingId = null;
 let originalBookBtnHandler = null;
 
 async function loadBookings() {
-    const username = localStorage.getItem("clientUsername") || "";
-    if (!username) {
+    const { username, email, legacyUsername, legacyEmail } = getClientIdentity();
+    if (!username && !email && !legacyUsername && !legacyEmail) {
         renderBookings([]);
+        showServerErrorToast('Login expired. Redirecting...');
+        setTimeout(() => window.location.href = '/client/login.html', 2000);
         return;
     }
-    
     try {
-        const response = await fetch(`/api/clientBookings?username=${encodeURIComponent(username)}`);
+        const response = await fetch(`/api/clientBookings?${buildIdentityQuery()}`);
         if (response.ok) {
             const list = await response.json();
             renderBookings(list);
@@ -466,6 +822,7 @@ async function loadBookings() {
             //-- NEW: Populate feedback dropdown
             const feedbackTopicEl = document.getElementById("feedbackTopic");
             if (feedbackTopicEl) {
+              const previouslySelectedTopic = feedbackTopicEl.value;
               feedbackTopicEl.innerHTML = '<option value="">-- Select a booking or service --</option>'; // Clear previous
               
               // Add completed bookings
@@ -485,13 +842,22 @@ async function loadBookings() {
               // Add general services
               const serviceGroup = document.createElement('optgroup');
               serviceGroup.label = "General Services";
-              servicesList.forEach(s => {
-                const option = document.createElement('option');
-                option.value = `service_${s.id}`; // Prefix to distinguish from booking IDs
-                option.textContent = s.name;
-                serviceGroup.appendChild(option);
+              Array.from(serviceEl.options)
+                .filter(serviceOption => serviceOption.value)
+                .forEach(serviceOption => {
+                const feedbackOption = document.createElement('option');
+                feedbackOption.value = `service_${serviceOption.value}`; // Prefix to distinguish from booking IDs
+                feedbackOption.textContent = serviceOption.textContent;
+                serviceGroup.appendChild(feedbackOption);
               });
               feedbackTopicEl.appendChild(serviceGroup);
+
+              if (previouslySelectedTopic) {
+                const matchingTopic = Array.from(feedbackTopicEl.options).find(option => option.value === previouslySelectedTopic);
+                if (matchingTopic) {
+                  feedbackTopicEl.value = previouslySelectedTopic;
+                }
+              }
             }
             //-- END NEW
 
@@ -543,7 +909,7 @@ function renderBookings(list) {
                     <td>${escapeHtml((b.vehicleType || '') + (b.vehicleModel ? ' ' + b.vehicleModel : '')) || 'N/A'}</td>
                     <td>${escapeHtml(b.plateNumber || '-')}</td>
                     <td>${formatReadableDate(b.date)}</td>
-                    <td>${escapeHtml(b.time)}</td>
+                    <td>${escapeHtml(formatTime12(b.time))}</td>
                     <td>${escapeHtml(b.status)}</td>
                     <td title="${escapeHtml(b.notes || b.location || 'No notes')}">${escapeHtml((b.notes || '').substring(0,30) + (b.notes && b.notes.length > 30 ? '...' : '') || (b.location ? '📍 Loc' : '-'))}</td>
                     <td>${actionsHtml}</td>
@@ -562,15 +928,15 @@ function renderBookings(list) {
                 btn.onclick = async (e) => {
                     e.stopPropagation();
                     const bookingId = btn.dataset.id;
-                    const username = localStorage.getItem("clientUsername") || "";
-                    if (!username) {
+                    const identityQuery = buildIdentityQuery();
+                    if (!identityQuery) {
                         alert("Please login first");
                         return;
                     }
                     
                     showDeleteBookingPopup("Are you sure you want to cancel this booking?", async () => {
                         try {
-                            const response = await fetch(`/api/book/${bookingId}?username=${encodeURIComponent(username)}`, {
+                            const response = await fetch(`/api/book/${bookingId}?${identityQuery}`, {
                                 method: 'DELETE'
                             });
                             const result = await response.json();
@@ -619,16 +985,41 @@ function renderBookings(list) {
             }
 
             // Populate form
-            const serviceInfo = servicesList.find(s => s.name === booking.service);
-            if (serviceInfo) {
-                serviceEl.value = serviceInfo.id;
+            if (serviceEl.options.length <= 1) {
+                loadServices();
             }
+
+            const bookingServiceName = `${booking.service || ""}`.trim();
+            const serviceInfo = servicesList.find(s =>
+                s.name === booking.service ||
+                s._id === booking.service ||
+                `${s.name}`.trim().toLowerCase() === bookingServiceName.toLowerCase()
+            );
+
+            if (serviceInfo) {
+                syncSelectedServiceOption(serviceInfo._id, serviceInfo.name, serviceInfo.price, serviceInfo.duration);
+            } else {
+                const matchingOption = Array.from(serviceEl.options).find(option => {
+                    const optionLabel = option.textContent.split(" - ")[0].trim().toLowerCase();
+                    return optionLabel === bookingServiceName.toLowerCase();
+                });
+
+                if (matchingOption) {
+                    syncSelectedServiceOption(matchingOption.value, bookingServiceName, matchingOption.dataset.price || booking.price || "", matchingOption.dataset.duration || "");
+                } else if (bookingServiceName) {
+                    syncSelectedServiceOption(`saved_${bookingId}`, bookingServiceName, booking.price || "", "");
+                } else {
+                    serviceEl.value = "";
+                }
+            }
+
             dateEl.value = booking.date || '';
             
             // Convert 12h/24h to 24h for time input (robust parsing)
-            let timeMatch = booking.time.match(/(\\d{1,2}):(\\d{2})\\s*(AM|PM)/i); // 12h first
+            const rawTime = (booking.time || "").trim();
+            let timeMatch = rawTime.match(/(\d{1,2}):(\d{2})\s*(AM|PM)/i); // 12h first
             if (!timeMatch) {
-                timeMatch = booking.time.match(/(\\d{1,2}):(\\d{2})/); // Fallback 24h
+                timeMatch = rawTime.match(/(\d{1,2}):(\d{2})/); // Fallback 24h
             }
             if (timeMatch) {
                 let [ , h, m, ampm = '' ] = timeMatch;
@@ -642,10 +1033,16 @@ function renderBookings(list) {
                 timeEl.value = '';
             }
             
-            vehicleTypeSelect.value = booking.vehicleType || '';
-            if (booking.vehicleType === 'other') {
+            const savedVehicleType = booking.vehicleType || '';
+            const hasPresetVehicleType = Array.from(vehicleTypeSelect.options).some(option => option.value === savedVehicleType);
+            vehicleTypeSelect.value = hasPresetVehicleType ? savedVehicleType : (savedVehicleType ? 'other' : '');
+
+            if (vehicleTypeSelect.value === 'other') {
                 otherVehicleInput.style.display = 'block';
-                otherVehicleInput.value = booking.vehicleType;
+                otherVehicleInput.value = savedVehicleType;
+            } else if (otherVehicleInput) {
+                otherVehicleInput.style.display = 'none';
+                otherVehicleInput.value = '';
             }
             document.getElementById("vehicleModel").value = booking.vehicleModel || '';
             document.getElementById("plateNumber").value = booking.plateNumber || '';
@@ -805,14 +1202,34 @@ function showDeleteBookingPopup(message, onConfirm) {
     };
 }
 
-function formatTime12(time24) {
-        if(!time24) return "";
-        const [hour, minute] = time24.split(":");
-        let h = parseInt(hour);
+function formatTime12(timeValue) {
+        if (!timeValue) return "";
+
+        const trimmed = `${timeValue}`.trim();
+        const twelveHourMatch = trimmed.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+        if (twelveHourMatch) {
+            let [, hour, minute, period] = twelveHourMatch;
+            let normalizedHour = parseInt(hour, 10) % 12 || 12;
+            return `${normalizedHour.toString().padStart(2, '0')}:${minute} ${period.toUpperCase()}`;
+        }
+
+        const twentyFourHourMatch = trimmed.match(/^(\d{1,2}):(\d{2})$/);
+        if (!twentyFourHourMatch) return trimmed;
+
+        let [, hour, minute] = twentyFourHourMatch;
+        let h = parseInt(hour, 10);
         const ampm = h >= 12 ? "PM" : "AM";
         h = h % 12 || 12;
-        return `${h}:${minute} ${ampm}`;
+        return `${h.toString().padStart(2, '0')}:${minute} ${ampm}`;
     }
+
+function getSuggestedTimeSlot(durationMins) {
+    const now = new Date();
+    const hour = now.getHours();
+    let suggestedHour = Math.max(9, hour + 1); // Next hour after current
+    if (suggestedHour + Math.ceil(durationMins/60) > 18) suggestedHour = 9;
+    return `${suggestedHour.toString().padStart(2,'0')}:00`;
+}
 
 function formatReadableDate(dateStr) {
     if (!dateStr) return "";
@@ -962,6 +1379,8 @@ if (!editingBookingId) {
 
 function clearBookingForm() {
     serviceEl.value = "";
+    delete serviceEl.dataset.selectedServiceName;
+    delete serviceEl.dataset.selectedServiceValue;
     vehicleTypeSelect.value = "";
     
     dateEl.value = "";
@@ -978,7 +1397,7 @@ function clearBookingForm() {
     }
 
     const pricePreview = document.getElementById("pricePreview");
-    if (pricePreview) pricePreview.textContent = "";
+    if (pricePreview) pricePreview.textContent = "₱0";
     
     document.getElementById("bookPage").scrollTop = 0;
 }
@@ -1009,37 +1428,20 @@ function showConfirmPopup(message, onConfirm) {
     overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
 }
 
-const resetBtn = document.getElementById("resetBtn");
+    const resetBtn = document.getElementById("resetBtn");
 
-if (resetBtn) {
-    resetBtn.addEventListener("click", () => {
-        showConfirmPopup(
-            "Are you sure you want to clear all the booking details you've entered?",
-            () => {
-                const fieldIds = [
-                    "service", "date", "time", "vehicleType",
-                    "vehicleModel", "plateNumber", "location",
-                    "email", "notes"
-                ];
-
-                fieldIds.forEach(id => {
-                    const el = document.getElementById(id);
-                    if (el) el.value = "";
-                });
-
-                if (otherVehicleInput) {
-                    otherVehicleInput.style.display = "none";
-                    otherVehicleInput.value = "";
+    if (resetBtn) {
+        resetBtn.addEventListener("click", () => {
+            // Enhanced form reset with full cleanup
+            showConfirmPopup(
+                "Are you sure you want to clear all booking details? All entered information will be lost.",
+                () => {
+                    clearBookingForm(); // Use the comprehensive clear function
+                    showMsg("✅ Form completely reset. Ready for new booking!", true);
                 }
-
-                const pricePreview = document.getElementById("pricePreview");
-                if (pricePreview) pricePreview.textContent = "";
-
-                showMsg("Form cleared successfully.", true);
-            }
-        );
-    });
-}
+            );
+        });
+    }
 
 
 
@@ -1087,27 +1489,27 @@ if (bookBtn) {
     async function loadMyFeedbacks() {
         if (!myFeedbacksEl) return;
 
-        const username = localStorage.getItem("clientUsername");
-        if (!username) {
+        const { username, email, legacyUsername, legacyEmail } = getClientIdentity();
+        if (!username && !email && !legacyUsername && !legacyEmail) {
             myFeedbacksEl.innerHTML = "<p>Please log in to see your feedbacks.</p>";
             return;
         }
 
         try {
-            const response = await fetch(`/api/feedback/my-feedbacks?username=${encodeURIComponent(username)}`);
+            const response = await fetch(`/api/feedback/my-feedbacks?${buildIdentityQuery()}`);
             const feedbacks = await response.json();
 
             myFeedbacksEl.innerHTML = feedbacks.length ? "" : "<p>No feedback yet.</p>";
             feedbacks.forEach(fb => {
                 const div = document.createElement("div");
                 div.style = "border:1px solid #ccc; padding:15px; margin-bottom:10px; border-radius:10px; position:relative; background:#fff;";
-                // Note: The 'Remove' button has been removed as its localStorage logic is no longer valid.
                 div.innerHTML = `
                     <div style="display:flex; justify-content:space-between; align-items:flex-start;">
                         <div>
                             <strong>${escapeHtml(fb.user)}</strong><br>
                             <small class="muted">${new Date(fb.createdAt).toLocaleDateString()}</small>
                         </div>
+                        <button class="btn-danger feedback-remove-btn" data-id="${fb._id}" style="padding:8px 12px;">Remove</button>
                     </div>
 
                     <div style="color:#f5c518; margin:5px 0;">
@@ -1119,6 +1521,28 @@ if (bookBtn) {
                     ${fb.image ? `<div style="margin-top:10px;"><img src="${fb.image}" style="max-width:100%; border-radius:8px; border:1px solid #ccc;"></div>` : ""}
                 `;
                 myFeedbacksEl.appendChild(div);
+            });
+            myFeedbacksEl.querySelectorAll(".feedback-remove-btn").forEach(btn => {
+                btn.onclick = () => {
+                    showDeleteFeedbackPopup("Are you sure you want to remove this feedback?", async () => {
+                        try {
+                            const response = await fetch(`/api/feedback/${btn.dataset.id}?${buildIdentityQuery()}`, {
+                                method: 'DELETE'
+                            });
+                            const result = await response.json();
+
+                            if (!response.ok) {
+                                alert(result.message || "Failed to remove feedback.");
+                                return;
+                            }
+
+                            loadMyFeedbacks();
+                        } catch (err) {
+                            console.error('Failed to delete feedback:', err);
+                            alert("Could not remove feedback.");
+                        }
+                    });
+                };
             });
         } catch (err) {
             console.error('Failed to load my feedbacks:', err);
@@ -1173,19 +1597,20 @@ function showDeleteFeedbackPopup(message, onConfirm) {
 
         const saveFeedback = async (imageData = "") => {
             const topicValue = topicEl.value;
+            const selectedTopicOption = topicEl.selectedOptions[0];
             const newFb = {
                 user: localStorage.getItem("clientUsername") || "Guest",
+                email: localStorage.getItem("clientEmail") || "",
                 rating: selectedFeedbackRating,
                 comment,
                 image: imageData
             };
 
             if (topicValue.startsWith('service_')) {
-                const serviceId = topicValue.replace('service_', '');
-                const service = servicesList.find(s => s.id === serviceId);
-                if (service) {
-                    newFb.service = service.name;
-                }
+                const serviceLabel = selectedTopicOption
+                    ? selectedTopicOption.textContent.split(" - ")[0].trim()
+                    : "";
+                newFb.service = serviceLabel || topicValue.replace('service_', '');
             } else {
                 newFb.booking = topicValue;
             }
@@ -1197,7 +1622,12 @@ function showDeleteFeedbackPopup(message, onConfirm) {
                     body: JSON.stringify(newFb)
                 });
 
-                const result = await response.json();
+                let result = {};
+                try {
+                    result = await response.json();
+                } catch (parseError) {
+                    result = { message: `Server returned ${response.status}` };
+                }
 
                 if (response.ok) {
                     showFeedbackPopup("Feedback submitted!");
@@ -1212,17 +1642,20 @@ function showDeleteFeedbackPopup(message, onConfirm) {
                 }
             } catch (err) {
                 console.error('Feedback submission error:', err);
-                alert('An error occurred while submitting feedback.');
+                alert('An error occurred while submitting feedback. Please try again.');
             }
         };
 
         // If image selected
         if (imageInput.files && imageInput.files[0]) {
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                saveFeedback(e.target.result);
-            };
-            reader.readAsDataURL(imageInput.files[0]);
+            compressImageForFeedback(imageInput.files[0])
+                .then((compressedImage) => {
+                    saveFeedback(compressedImage);
+                })
+                .catch((error) => {
+                    console.error("Feedback image compression error:", error);
+                    alert(error.message || "Could not prepare the selected image.");
+                });
         } else {
             saveFeedback();
         }
@@ -1232,25 +1665,107 @@ function showDeleteFeedbackPopup(message, onConfirm) {
    function showFeedbackPopup(message) {
     const overlay = document.createElement("div");
     overlay.className = 'feedback-popup-overlay';
+    overlay.style.display = "flex";
 
     overlay.innerHTML = `
-        <div class="feedback-popup-box">
-            <p>${message}</p>
-            <button id="okBtn">OK</button>
+        <div class="feedback-popup-box" style="border-top:4px solid #2e7d32; max-width:420px; text-align:center;">
+            <h3 style="color:#2e7d32; margin-bottom:10px;">Success</h3>
+            <p style="margin-bottom:16px; color:#355b39;">${message}</p>
+            <button id="okBtn" class="primary" style="padding:10px 18px;">OK</button>
         </div>
     `;
 
     document.body.appendChild(overlay);
 
-    overlay.querySelector("#okBtn").onclick = () => overlay.remove();
+    const closePopup = () => overlay.remove();
+    overlay.querySelector("#okBtn").onclick = closePopup;
+    overlay.onclick = (e) => {
+        if (e.target === overlay) closePopup();
+    };
 }
 
-    await loadServicesDynamic();
-    loadServices(); // Populate UI with loaded data
-    loadBookings();
-    loadMyFeedbacks();
+async function submitBooking() {
+    const svcOpt = serviceEl.selectedOptions[0];
+    const date = dateEl.value;
+    const time = timeEl.value;
+    const vehicleType = vehicleTypeSelect.value === "other" ? otherVehicleInput.value : vehicleTypeSelect.value;
+    const clientName = localStorage.getItem("clientName");
+    const email = document.getElementById("email").value;
+
+    if (!clientName) return showMsg("Please log in to book a service.", false);
+    if (!email) return showMsg("Please enter your email address.", false);
+    if (!svcOpt.value || !date || !time) return showMsg("Please complete the form.", false);
+
+    if (time < "09:00" || time > "18:00") {
+        return showErrorPopup("Please select a time between 9:00 AM to 6:00 PM.");
+    }
+
+    const formattedTime = formatTime12(time);
+    const newBooking = {
+        id: nowId(),
+        service: svcOpt.textContent.split(" - ")[0],
+        vehicleType,
+        vehicleModel: document.getElementById("vehicleModel").value,
+        plateNumber: document.getElementById("plateNumber").value,
+        location: document.getElementById("location").value,
+        email,
+        notes: document.getElementById("notes").value,
+        date,
+        time: formattedTime,
+        price: svcOpt.dataset.price,
+        status: "pending",
+        clientName: localStorage.getItem("clientName") || "",
+        clientUser: localStorage.getItem("clientUsername") || ""
+    };
+
+    showBookingPopup(`<b>Service:</b> ${svcOpt.textContent}<br><b>Time:</b> ${formattedTime}<br>Proceed?`, async () => {
+        try {
+            const response = await fetch('/api/book', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(newBooking)
+            });
+
+            const result = await response.json();
+
+            if (!response.ok) {
+                showMsg(result.message || "Booking failed.", false);
+                return;
+            }
+
+            const savedBooking = result.booking || newBooking;
+            const list = lsGet(LS_BOOK, []);
+            list.push(savedBooking);
+            lsSet(LS_BOOK, list);
+
+            clearBookingForm();
+            await loadBookings();
+            showPage("bookingsPage");
+            showFeedbackPopup("Booking successful! Your booking is now listed in My Bookings.");
+        } catch (error) {
+            console.error("Booking error:", error);
+            showMsg("An error occurred. Please try again.", false);
+        }
+    });
+}
+
+    // Init map after services (uses fallback images)
+    if (typeof L !== 'undefined' && document.getElementById('map')) {
+      const map = L.map('map').setView([14.5995, 120.9842], 13); // Manila default
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+      L.marker([14.5995, 120.9842]).addTo(map).bindPopup('CarWash Pro Location');
+    }
+
+// IMMEDIATE SERVICES LOAD - no waiting!
+console.log('🚀 DOM ready - forcing services load NOW');
+loadServices();
+setTimeout(() => loadServicesDynamic().catch(e => console.warn('Dynamic load failed, using fallback:', e)), 500);
+
+// Background API refresh (non-blocking)
+loadServicesDynamic().catch(e => console.warn('API refresh failed:', e));
+loadBookings();
+loadMyFeedbacks();
     
     // Refresh bookings periodically
-    setInterval(loadBookings, 30000); // Every 30s
+    setInterval(loadBookings, 3000);
 });
-
