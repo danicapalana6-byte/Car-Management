@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Client Sign Up</title>
+  <link rel="stylesheet" href="2style.css">
+</head>
+
+<body class="center">
+<main class="auth-shell auth-signup-shell">
+  <section class="auth-panel">
+    <div class="auth-panel-inner">
+      <h2>Create Account</h2>
+      <p class="subtitle">Register to book services, track appointments, and manage your profile.</p>
+
+      <label for="name">Full Name</label>
+      <input id="name" placeholder="Enter your full name">
+
+      <label for="email">Email</label>
+      <input id="email" type="email" placeholder="Enter your email">
+
+      <label for="username">Username</label>
+      <input id="username" placeholder="Choose a username">
+
+      <label for="password">Password</label>
+      <input id="password" type="password" placeholder="Create a password">
+
+      <p id="msg" class="auth-message" style="color:#ffdddd;"></p>
+
+      <button class="auth-login-btn" onclick="signup()">Register</button>
+
+      <div class="auth-links auth-links-dark">
+        <a href="forgot-password.html">Forgot Password?</a>
+        <p>Already have an account? <a href="login.html">Log in</a></p>
+      </div>
+    </div>
+  </section>
+
+  <section class="auth-visual">
+    <div class="auth-visual-copy">
+      <div class="auth-kicker">CarWash Pro</div>
+      <h1>Book smarter. Arrive cleaner.</h1>
+      <p>Create your account to schedule washes faster, track bookings, and stay updated with your car care history.</p>
+      <div class="auth-feature-list">
+        <span>Quick account setup</span>
+        <span>Service tracking</span>
+        <span>Easy booking management</span>
+      </div>
+    </div>
+  </section>
+</main>
+
+<script src="api.js"></script>
+<script>
+async function signup(){
+
+  const name = document.getElementById("name").value.trim();
+  const email = document.getElementById("email").value.trim();
+  const username = document.getElementById("username").value.trim();
+  const password = document.getElementById("password").value;
+
+  const msg = document.getElementById("msg");
+
+  if(!name || !email || !username || !password){
+    msg.classList.remove("success");
+    msg.textContent = "Please fill all fields";
+    return;
+  }
+
+  try{
+
+    const res = await fetch(apiUrl("/api/clientAuth/signup"),{
+      method:"POST",
+      headers:{
+        "Content-Type":"application/json"
+      },
+      body:JSON.stringify({name,email,username,password})
+    });
+
+    const data = await res.json();
+
+    if(res.ok){
+
+      // Save user
+      localStorage.setItem("clientName", name);
+      localStorage.setItem("clientUsername", username);
+      localStorage.setItem("clientEmail", email);
+      localStorage.setItem("clientToken", data.token);
+
+      // Better UX (no alert)
+      msg.classList.add("success");
+      msg.textContent = "Registration successful! Redirecting...";
+
+      setTimeout(()=>{
+        window.location.href = "dashboard.html";
+      },1500);
+
+    }else{
+      msg.classList.remove("success");
+      msg.textContent = data.message || "Signup failed";
+    }
+
+  }catch(err){
+    msg.classList.remove("success");
+    msg.textContent = "Server offline or network error. Please check connection and try again.";
+    console.error(err);
+  }
+}
+</script>
+
+</body>
+</html>

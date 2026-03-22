@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Client Log In</title>
+  <link rel="stylesheet" href="2style.css">
+</head>
+
+<body class="center">
+<main class="auth-shell auth-login-shell">
+  <section class="auth-visual">
+    <div class="auth-visual-copy">
+      <div class="auth-kicker">CarWash Pro</div>
+      <h1>Clean booking. Cleaner arrival.</h1>
+      <p>Sign in to manage bookings, track your bookings, and leave feedback after every wash.</p>
+      <div class="auth-feature-list">
+        <span>Fast booking updates</span>
+        <span>The best car wash/service you can get around Nueva Ecija</span>
+        <span>Easy feedback and tracking</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="auth-panel">
+    <div class="auth-panel-inner">
+      <h2>Welcome Back</h2>
+      <p class="subtitle">Log in to access your dashboard and bookings.</p>
+
+      <label for="username">Username</label>
+      <input id="username" placeholder="Enter your username">
+
+      <label for="password">Password</label>
+      <input id="password" type="password" placeholder="Enter your password">
+      <div class="auth-inline-link">
+        <a href="forgot-password.html">Forgot Password?</a>
+      </div>
+
+      <p id="msg" class="auth-message" style="color:#ffdddd;"></p>
+
+      <button class="auth-login-btn" onclick="login()">Log In</button>
+
+      <div class="auth-links auth-links-dark">
+        <p>Don't have an account? <a href="index.html">Sign up</a></p>
+      </div>
+    </div>
+  </section>
+</main>
+
+<script src="api.js"></script>
+<script>
+async function login(){
+
+  const username = document.getElementById("username").value.trim();
+  const password = document.getElementById("password").value;
+
+  const msg = document.getElementById("msg");
+
+  if(!username || !password){
+    msg.classList.remove("success");
+    msg.textContent = "Please fill all fields";
+    return;
+  }
+
+  try{
+
+    const res = await fetch(apiUrl("/api/clientAuth/login"),{
+      method:"POST",
+      headers:{
+        "Content-Type":"application/json"
+      },
+      body:JSON.stringify({username,password})
+    });
+
+    const data = await res.json();
+
+    if(res.ok){
+
+      // Save user
+      localStorage.setItem("clientUsername", username);
+      localStorage.setItem("clientToken", data.token);
+      localStorage.setItem("clientName", data.name);
+      localStorage.setItem("clientEmail", data.email);
+
+      // Better UX (no alert)
+      msg.classList.add("success");
+      msg.textContent = "Login successful! Redirecting...";
+
+      setTimeout(()=>{
+        window.location.href = "dashboard.html";
+      },1500);
+
+    }else{
+      msg.classList.remove("success");
+      msg.textContent = data.message || "Login failed";
+    }
+
+  }catch(err){
+    msg.classList.remove("success");
+    msg.textContent = "Server offline or network error. Please check connection and try again.";
+    console.error(err);
+  }
+}
+</script>
+
+</body>
+</html>
