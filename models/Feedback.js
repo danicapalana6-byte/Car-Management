@@ -2,6 +2,7 @@ const mongoose = require('mongoose');
 
 const feedbackSchema = new mongoose.Schema({
     user: { type: String, required: true },
+    email: { type: String },
     rating: { type: Number, required: true, min: 1, max: 5 },
     comment: { type: String, required: true },
     booking: { type: mongoose.Schema.Types.ObjectId, ref: 'Booking' },
