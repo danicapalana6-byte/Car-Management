@@ -1273,7 +1273,7 @@ tr:hover{
   align-items:flex-end;
   background:
     linear-gradient(180deg, rgba(10,34,18,0.18) 0%, rgba(10,34,18,0.68) 100%),
-    url("./image/logo.png") center/cover no-repeat;
+    url("logo.png") center/cover no-repeat;
 }
 
 .auth-visual::after{
