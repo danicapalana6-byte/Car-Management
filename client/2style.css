@@ -50,11 +50,11 @@ h1,h2,h3,h4{
 }
 
 h2{
-  font-size:1.65rem;
+  font-size: clamp(1.25rem, 3vw, 1.65rem);
 }
 
 h3{
-  font-size:1.2rem;
+  font-size: clamp(1.05rem, 2.5vw, 1.2rem);
   margin-bottom:8px;
 }
 
@@ -74,10 +74,10 @@ p, label, td, th, div, span{
 
 .main{
   flex:1;
-  padding:28px;
+  padding: clamp(1rem, 4vw, 1.75rem);
   display:flex;
   flex-direction:column;
-  gap:18px;
+  gap: clamp(0.75rem, 3vw, 1.125rem);
   min-width:0;
 }
 
@@ -994,11 +994,6 @@ tr:hover{
     align-items:flex-start;
     min-height:100svh;
   }
-
-  .main {
-    padding: 12px;
-    gap:12px;
-  }
   
   .header {
     padding: 13px 14px;
@@ -1057,14 +1052,6 @@ tr:hover{
   
   input, select, textarea, button {
     padding: 14px;
-  }
-
-  h3{
-    font-size:1.05rem;
-  }
-
-  h4{
-    font-size:0.96rem;
   }
   
   /* Profile grid stacks */
@@ -1310,11 +1297,6 @@ tr:hover{
 
   .hamburger {
     display: flex;
-  }
-  
-  .main {
-    padding: 16px;
-    gap:14px;
   }
 
   .header-user{

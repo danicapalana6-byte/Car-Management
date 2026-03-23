@@ -1,123 +1,4 @@
-function showServerErrorToast(message) {
-    const toast = document.createElement('div');
-    toast.className = 'server-error-toast';
-    toast.textContent = message;
-    document.body.appendChild(toast);
-    setTimeout(() => {
-        toast.remove();
-    }, 3000);
-}
-
-const LS_BOOK = "demoBookings_v1";
-const LS_FEEDBACK = "demoFeedback_v1"; 
-
-let servicesList = []; // Global services cache
-
-// FORCE FALLBACK - immediate load
-servicesList = [
-  {
-      _id: "basic_wash",
-      name: "Basic Wash",
-      price: 200,
-      duration: 30,
-      description: "Quick exterior wash",
-      fullDescription: "Our Basic Wash includes exterior hand wash, rims and tire cleaning, hand drying, and light interior vacuum.",
-      image: "./image/basic_wash.jpg",
-  },
-  {
-      _id: "deluxe_wash",
-      name: "Deluxe Wash",
-      price: 400,
-      duration: 60,
-      description: "Full exterior & interior clean", 
-      fullDescription: "Deluxe Wash includes everything in Basic plus detailed interior cleaning.",
-      image: "./image/Deluxe_Wash.jpg",
-  },
-  {
-      _id: "wax_polish",
-      name: "Wax & Polish",
-      price: 800,
-      duration: 90,
-      description: "Protect and shine your car",
-      fullDescription: "Premium carnauba wax and polish protection.",
-      image: "./image/Wax_&_Polish.jpg",
-  },
-  {
-      _id: "interior_detail",
-      name: "Interior Detailing",
-      price: 700,
-      duration: 120,
-      description: "Deep interior cleaning",
-      fullDescription: "Complete interior shampoo and conditioning.",
-      image: "./image/Interior_Detailing.jpg",
-  },
-  {
-      _id: "engine_clean",
-      name: "Engine Cleaning", 
-      price: 900,
-      duration: 60,
-      description: "Safe engine wash",
-      fullDescription: "Engine bay degrease and protection.",
-      image: "./image/Engine_Cleaning.jpg",
-  },
-  {
-      _id: "tire_shine",
-      name: "Tire & Rim Shine",
-      price: 150,
-      duration: 20,
-      description: "Clean & glossy tires",
-      fullDescription: "Premium tire dressing and rim cleaning.",
-      image: "./image/tire_shine.jpg",
-  },
-  {
-      _id: "headlight_restore",
-      name: "Headlight Restoration",
-      price: 300,
-      duration: 45,
-      description: "Restore headlight clarity",
-      fullDescription: "Remove oxidation, restore night visibility.",
-      image: "./image/Headlight_restoration.jpg",
-  },
-  {
-      _id: "scratch_removal",
-      name: "Scratch Removal",
-      price: 1200,
-      duration: 90,
-      description: "Minor scratch repair",
-      fullDescription: "Paint correction for light swirls/scratches.",
-      image: "./image/scratch_removal.jpg",
-  },
-  {
-      _id: "ceramic_coating",
-      name: "Ceramic Coating",
-      price: 5000,
-      duration: 180,
-      description: "Long-term paint protection",
-      fullDescription: "Hydrophobic nano coating for 2+ years protection.",
-      image: "./image/Ceramic_coating.jpg",
-  },
-  {
-      _id: "special_offer",
-      name: "Special Offer Service",
-      price: 999,
-      duration: 180,
-      description: "Limited-time premium service",
-      fullDescription: "Full Deluxe + Wax + Interior + Engine special!",
-      image: "./image/sp.png",
-  }
-];
-console.log('✅ Services fallback loaded:', servicesList.length);
-
-// Fetch services dynamically from server
-async function loadServicesDynamic() {
-  try {
-    const response = await fetch('/api/services');
-    if (response.ok) {
-      servicesList = await response.json();
-      console.log('Services loaded from server:', servicesList.length);
-    } else {
-      console.warn('Server /api/services failed (' + response.status + '), using fallback data');
-      servicesList = [
+const FALLBACK_SERVICES = [
     {
         _id: "basic_wash",
         name: "Basic Wash",
@@ -209,15 +90,40 @@ async function loadServicesDynamic() {
         image: "./image/sp.png",
     },
 ];
-    }
-    if (document.readyState !== "loading") {
-      loadServices();
-      if (typeof loadBookings === "function") {
-        loadBookings();
-      }
+
+function showServerErrorToast(message) {
+    const toast = document.createElement('div');
+    toast.className = 'server-error-toast';
+    toast.textContent = message;
+    document.body.appendChild(toast);
+    setTimeout(() => {
+        toast.remove();
+    }, 3000);
+}
+
+const LS_BOOK = "demoBookings_v1";
+const LS_FEEDBACK = "demoFeedback_v1"; 
+
+let servicesList = []; // Global services cache
+
+// FORCE FALLBACK - immediate load
+servicesList = FALLBACK_SERVICES;
+console.log('✅ Services fallback loaded:', servicesList.length);
+
+// Fetch services dynamically from server
+async function loadServicesDynamic() {
+  try {
+    const response = await fetch('/api/services');
+    if (response.ok) {
+      servicesList = await response.json();
+      console.log('Services loaded from server:', servicesList.length);
+    } else {
+      console.warn('Server /api/services failed (' + response.status + '), using fallback data');
+      servicesList = FALLBACK_SERVICES;
     }
   } catch (error) {
     console.error("Error loading services:", error);
+  } finally {
     if (document.readyState !== "loading") {
       loadServices();
       if (typeof loadBookings === "function") {
@@ -899,9 +805,9 @@ function renderBookings(list) {
             bookingsTbody.innerHTML = upcomingBookings.length ? "" : '<tr><td colspan="8">No upcoming bookings</td></tr>'; 
             list.forEach(b => {
                 const tr = document.createElement("tr");
-                let actionsHtml = '<button data-id="' + b._id + '" class="cancelBtn btn-danger">Cancel</button>';
+let actionsHtml = '';
                 if (b.status === "pending") {
-                    actionsHtml = '<button data-id="' + b._id + '" class="editBtn btn-primary small">Edit</button> ' + actionsHtml;
+                    actionsHtml = '<button data-id="' + b._id + '" class="editBtn btn-primary small">Edit</button> <button data-id="' + b._id + '" class="cancelBtn btn-danger">Cancel</button>';
                 }
                 
                 tr.innerHTML = `
@@ -928,35 +834,35 @@ function renderBookings(list) {
                 btn.onclick = async (e) => {
                     e.stopPropagation();
                     const bookingId = btn.dataset.id;
+                    
+                    // Cancel booking directly - no confirmation popup needed
                     const identityQuery = buildIdentityQuery();
                     if (!identityQuery) {
                         alert("Please login first");
                         return;
                     }
                     
-                    showDeleteBookingPopup("Are you sure you want to cancel this booking?", async () => {
-                        try {
-                            const response = await fetch(`/api/book/${bookingId}?${identityQuery}`, {
-                                method: 'DELETE'
-                            });
-                            const result = await response.json();
-                            
-                            if (response.ok) {
-                                console.log("Booking cancelled:", result.message);
-                                loadBookings(); // Refresh from server
-                            } else {
-                                alert("Cancel failed: " + (result.message || "Unknown error"));
-                            }
-                        } catch (error) {
-                            console.error("Delete error:", error);
-                            alert("Network error. Please try again.");
-                            // Fallback to LS delete
-                            let list = lsGet(LS_BOOK, []);
-                            list = list.filter(x => x._id !== bookingId);
-                            lsSet(LS_BOOK, list);
-                            loadBookings();
+                    try {
+                        const response = await fetch(`/api/book/${bookingId}?${identityQuery}`, {
+                            method: 'DELETE'
+                        });
+                        const result = await response.json();
+                        
+                        if (response.ok) {
+                            console.log("Booking cancelled:", result.message);
+                            loadBookings(); // Refresh from server
+                        } else {
+                            alert("Cancel failed: " + (result.message || "Unknown error"));
                         }
-                    });
+                    } catch (error) {
+                        console.error("Delete error:", error);
+                        alert("Network error. Please try again.");
+                        // Fallback to LS delete
+                        let list = lsGet(LS_BOOK, []);
+                        list = list.filter(x => x._id !== bookingId);
+                        lsSet(LS_BOOK, list);
+                        loadBookings();
+                    }
                 };
             });
 
@@ -1113,9 +1019,6 @@ function cancelEdit() {
 
     clearBookingForm();
     showPage("bookingsPage");
-    
-    // ✅ Success validation
-    showSuccessModal("Edit Successful", "Booking form has been edited successfully!");
 }
 
     async function updateBooking() {
@@ -1280,75 +1183,6 @@ function showErrorPopup(message) {
     modal.style.display = "flex";
 }
 
-async function submitBooking() {
-    const svcOpt = serviceEl.selectedOptions[0];
-    const date = dateEl.value;
-    const time = timeEl.value;
-    const vehicleType = vehicleTypeSelect.value === "other" ? otherVehicleInput.value : vehicleTypeSelect.value;
-    const vehicleModel = document.getElementById("vehicleModel").value;
-    const clientName = localStorage.getItem("clientName");
-    const email = document.getElementById("email").value;
-
-    if (!clientName) return showMsg("Please log in to book a service.", false);
-    if (!email) return showMsg("Please enter your email address.", false);
-
-    if (!svcOpt.value || !date || !time) return showMsg("Please complete the form.", false);
-
-    if (time < "09:00" || time > "18:00") {
-        return showErrorPopup("Please select a time between 9:00 AM to 6:00 PM.");
-    }
-
-    const formattedTime = formatTime12(time);
-
-    const newBooking = {
-        id: nowId(),
-        service: svcOpt.textContent.split(" - ")[0],
-        vehicleType,
-        vehicleModel: document.getElementById("vehicleModel").value,
-        plateNumber: document.getElementById("plateNumber").value,
-        location: document.getElementById("location").value,
-        email: document.getElementById("email").value,
-        notes: document.getElementById("notes").value,
-        date,
-        time: formattedTime,
-        price: svcOpt.dataset.price,
-        status: "pending",
-        clientName: localStorage.getItem("clientName") || "",
-        clientUser: localStorage.getItem("clientUsername") || ""
-    };
-
-showBookingPopup(`<b>Service:</b> ${svcOpt.textContent}<br><b>Time:</b> ${formattedTime}<br>Proceed?`, async () => {
-    try {
-        const response = await fetch('/api/book', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(newBooking)
-        });
-
-        const result = await response.json();
-
-        if (response.ok) {
-            const list = lsGet(LS_BOOK, []);
-            list.push(result.booking);
-            lsSet(LS_BOOK, list);
-
-            clearBookingForm();
-
-           // ✅ FIX: show only for NEW booking (not editing)
-if (!editingBookingId) {
-    showFeedbackPopup("Booking confirmed!");
-}
-        } else {
-            showMsg(result.message || "Booking failed.", false);
-        }
-
-    } catch (error) {
-        console.error("Booking error:", error);
-        showMsg("An error occurred. Please try again.", false);
-    }
-});
-}
-
 function clearBookingForm() {
     serviceEl.value = "";
     delete serviceEl.dataset.selectedServiceName;
@@ -1510,10 +1344,11 @@ if (bookBtn) {
             feedbacks.forEach(fb => {
                 const div = document.createElement("div");
                 div.style = "border:1px solid #ccc; padding:15px; margin-bottom:10px; border-radius:10px; position:relative; background:#fff;";
+                const serviceName = fb.service || 'General Feedback';
                 div.innerHTML = `
                     <div style="display:flex; justify-content:space-between; align-items:flex-start;">
                         <div>
-                            <strong>${escapeHtml(fb.user)}</strong><br>
+                            <strong>${escapeHtml(fb.user)}</strong> on <strong>${escapeHtml(serviceName)}</strong><br>
                             <small class="muted">${new Date(fb.createdAt).toLocaleDateString()}</small>
                         </div>
                         <button class="btn-danger feedback-remove-btn" data-id="${fb._id}" style="padding:8px 12px;">Remove</button>
@@ -1601,6 +1436,9 @@ function showDeleteFeedbackPopup(message, onConfirm) {
                 newFb.service = serviceLabel || topicValue.replace('service_', '');
             } else {
                 newFb.booking = topicValue;
+                if(selectedTopicOption) {
+                    newFb.service = selectedTopicOption.textContent.split(' on ')[0].trim();
+                }
             }
 
             try {
@@ -1781,5 +1619,5 @@ async function loadOffers() {
 }
     
     // Refresh bookings periodically
-    setInterval(loadBookings, 3000);
+    setInterval(loadBookings, 30000); // Changed to 30 seconds
 });
