@@ -38,6 +38,11 @@ body{
   overflow-x: hidden; /* Prevent horizontal scroll */
 }
 
+img{
+  max-width:100%;
+  height:auto;
+}
+
 h1,h2,h3,h4{
   color:var(--green-900);
   line-height:1.2;
@@ -74,6 +79,10 @@ p, label, td, th, div, span{
   flex-direction:column;
   gap:18px;
   min-width:0;
+}
+
+.main > section{
+  width:100%;
 }
 
 /* ===================================
@@ -201,20 +210,36 @@ p, label, td, th, div, span{
   backdrop-filter:blur(10px);
 }
 
+.header-profile{
+  background:linear-gradient(135deg, #e9f9ec 0%, #d9f3df 100%);
+  border:1px solid rgba(111, 180, 123, 0.35);
+}
+
 .header-main{
   display:flex;
   align-items:center;
   gap:12px;
   flex:1;
   min-width:0;
+  flex-wrap:nowrap;
 }
 
 .header-main h2{
   min-width:0;
+  margin:0;
+  font-size:clamp(1.25rem, 2vw, 1.7rem);
+  white-space:nowrap;
 }
 
 .header-user{
   margin-left:auto;
+  padding:8px 14px;
+  border-radius:999px;
+  background:rgba(255,255,255,0.65);
+  color:#2d6a38;
+  border:1px solid rgba(111, 180, 123, 0.25);
+  white-space:nowrap;
+  flex-shrink:1;
 }
 
 /* ===================================
@@ -460,6 +485,23 @@ button:active{
   border:1px solid var(--border-soft);
   background:#fff;
   -webkit-overflow-scrolling:touch;
+}
+
+#servicesOverview .service-card{
+  min-width:0;
+  height:100%;
+}
+
+#servicesOverview .service-card > div:last-child{
+  justify-content:stretch !important;
+}
+
+#servicesOverview .service-card .btn-view{
+  width:100%;
+}
+
+#myFeedbacks > div > div:first-child{
+  gap:12px;
 }
 
 table{
@@ -876,21 +918,35 @@ tr:hover{
   }
 
   .main {
-    padding: 14px;
+    padding: 12px;
+    gap:12px;
   }
   
   .header {
-    padding: 14px 16px;
-    gap: 10px;
+    padding: 13px 14px;
+    gap: 8px;
+    flex-wrap:nowrap;
+    align-items:center;
   }
   
   .header h2 {
-    font-size: 1.2rem;
+    font-size: 1rem;
+  }
+
+  .header-main{
+    gap:8px;
+    flex:1 1 auto;
+    min-width:0;
   }
 
   .header-user{
-    width:100%;
+    width:auto;
     margin-left:0;
+    padding:6px 10px;
+    font-size:0.72rem;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    max-width:50%;
   }
   
   .stats {
@@ -914,11 +970,23 @@ tr:hover{
   
   /* Forms - extra spacing */
   .panel {
-    padding: 18px;
+    padding: 16px;
+  }
+
+  .card{
+    padding:16px;
   }
   
   input, select, textarea, button {
     padding: 14px;
+  }
+
+  h3{
+    font-size:1.05rem;
+  }
+
+  h4{
+    font-size:0.96rem;
   }
   
   /* Profile grid stacks */
@@ -937,7 +1005,7 @@ tr:hover{
   }
 
   .location-map {
-    min-height: 220px;
+    min-height: 200px;
   }
 
   .form-row,
@@ -958,6 +1026,13 @@ tr:hover{
     width:100%;
   }
 
+  #profileViewPage > button,
+  .feedback-submit-btn,
+  #bookBtn,
+  #resetBtn{
+    width:100%;
+  }
+
   #pricePreview{
     width:100%;
     margin-left:0 !important;
@@ -968,6 +1043,40 @@ tr:hover{
   .dynamic-box,
   .feedback-popup-box{
     padding:18px;
+    border-radius:18px;
+  }
+
+  .stats .card,
+  .location-copy,
+  #myFeedbacks > div{
+    padding:14px !important;
+  }
+
+  #dashboardPage,
+  #bookPage,
+  #bookingsPage,
+  #feedbackPage,
+  #profileViewPage,
+  #profileEditPage{
+    border-radius:16px;
+  }
+
+  #servicesOverview{
+    padding:14px !important;
+    gap:12px !important;
+  }
+
+  #locationSection{
+    padding:14px !important;
+  }
+
+  #myFeedbacks > div > div:first-child{
+    flex-direction:column;
+    align-items:stretch !important;
+  }
+
+  #myFeedbacks .feedback-remove-btn{
+    width:100%;
   }
 
   .auth-shell{
@@ -1117,21 +1226,28 @@ tr:hover{
   }
   
   .main {
-    padding: 18px;
+    padding: 16px;
+    gap:14px;
   }
 
   .header-user{
-    width:100%;
+    width:auto;
     margin-left:0;
+    max-width:50%;
   }
   
   .stats {
     grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
   }
+
+  .card,
+  .panel{
+    padding:18px;
+  }
   
   .responsive-table {
-    margin: -15px;
-    border-radius: 10px;
+    margin: 0;
+    border-radius: 14px;
     overflow: hidden;
   }
   
@@ -1162,6 +1278,10 @@ tr:hover{
     grid-template-columns: 1fr;
   }
 
+  #servicesOverview{
+    grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)) !important;
+  }
+
   .auth-shell{
     grid-template-columns:1fr;
     min-height:auto;
@@ -1179,6 +1299,100 @@ tr:hover{
 
   .auth-panel-inner{
     padding:24px 20px;
+  }
+}
+
+@media (max-width: 640px) {
+  #bookingsPage .responsive-table{
+    overflow:visible;
+    border:none;
+    background:transparent;
+  }
+
+  #bookingsPage table,
+  #bookingsPage thead,
+  #bookingsPage tbody,
+  #bookingsPage tr,
+  #bookingsPage td{
+    display:block;
+    width:100%;
+  }
+
+  #bookingsPage table{
+    min-width:0;
+    background:transparent;
+  }
+
+  #bookingsPage thead{
+    display:none;
+  }
+
+  #bookingsPage tbody{
+    display:grid;
+    gap:12px;
+  }
+
+  #bookingsPage tr{
+    padding:14px;
+    border:1px solid var(--border-soft);
+    border-radius:16px;
+    background:#ffffff;
+    box-shadow:var(--shadow-sm);
+  }
+
+  #bookingsPage td{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-start;
+    gap:12px;
+    padding:8px 0;
+    border-bottom:1px solid #edf3ed;
+    text-align:right;
+  }
+
+  #bookingsPage td:last-child{
+    border-bottom:none;
+    padding-bottom:0;
+  }
+
+  #bookingsPage td::before{
+    flex:0 0 40%;
+    text-align:left;
+    font-weight:700;
+    color:var(--green-800);
+  }
+
+  #bookingsPage td:nth-child(1)::before{ content:"Service"; }
+  #bookingsPage td:nth-child(2)::before{ content:"Vehicle"; }
+  #bookingsPage td:nth-child(3)::before{ content:"Plate"; }
+  #bookingsPage td:nth-child(4)::before{ content:"Date"; }
+  #bookingsPage td:nth-child(5)::before{ content:"Time"; }
+  #bookingsPage td:nth-child(6)::before{ content:"Status"; }
+  #bookingsPage td:nth-child(7)::before{ content:"Notes"; }
+  #bookingsPage td:nth-child(8)::before{ content:"Actions"; }
+
+  #bookingsPage td[colspan]{
+    display:block;
+    text-align:center;
+    border-bottom:none;
+  }
+
+  #bookingsPage td[colspan]::before{
+    content:none;
+  }
+
+  #bookingsPage td:last-child button{
+    width:100%;
+  }
+
+  #bookingsPage td:last-child{
+    display:grid;
+    gap:10px;
+    text-align:left;
+  }
+
+  #bookingsPage td:last-child::before{
+    margin-bottom:2px;
   }
 }
 
