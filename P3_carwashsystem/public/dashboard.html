@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CarWash Pro Admin</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="admin-shell">
+  <div class="admin-layout">
+    <aside class="sidebar">
+      <div class="brand-block">
+        <p class="eyebrow">Operations Portal</p>
+        <h1>CarWash Pro</h1>
+        <p class="sidebar-copy">Admin control center for bookings, services, offers, and performance tracking.</p>
+      </div>
+      <nav class="sidebar-nav">
+        <button id="btnDashboard" class="nav-btn active" data-page="dashboard">Dashboard</button>
+        <button id="btnBookings" class="nav-btn" data-page="bookings">Bookings</button>
+        <button id="btnServices" class="nav-btn" data-page="services-section">Services</button>
+        <button id="btnOffers" class="nav-btn" data-page="offers">Offers</button>
+        <button id="btnAnalytics" class="nav-btn" data-page="analytics">Analytics</button>
+        <button id="btnReports" class="nav-btn" data-page="reports">Reports</button>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="status-chip"><span class="status-dot"></span>Admin session active</div>
+        <button id="btnLogout" class="logout-btn">Logout</button>
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">Admin Workspace</p>
+          <h2 id="pageTitle">Dashboard</h2>
+        </div>
+        <button id="refreshBtn" class="secondary-btn">Refresh Data</button>
+      </header>
+
+      <section id="dashboard" class="page-section">
+        <div class="hero-panel">
+          <div>
+            <p class="eyebrow">Daily Snapshot</p>
+            <h3>Keep your client website backed by live operations data.</h3>
+            <p class="hero-copy">Monitor confirmed work, revenue, incoming bookings, and visible promos from one place.</p>
+          </div>
+          <div class="hero-metrics">
+            <div class="mini-stat"><span>Clients</span><strong id="clientCount">0</strong></div>
+            <div class="mini-stat"><span>Services</span><strong id="serviceCount">0</strong></div>
+          </div>
+        </div>
+
+        <div class="stats-grid">
+          <article class="stat-card"><span>Confirmed Today</span><strong id="carsToday">0</strong></article>
+          <article class="stat-card"><span>Total Revenue</span><strong id="revenueToday">PHP 0</strong></article>
+          <article class="stat-card"><span>Total Bookings</span><strong id="bookingCount">0</strong></article>
+          <article class="stat-card"><span>Active Offers</span><strong id="offerCount">0</strong></article>
+        </div>
+
+        <div class="content-grid two-col">
+          <section class="panel">
+            <div class="panel-heading">
+              <div>
+                <p class="eyebrow">Queue</p>
+                <h3>Latest Bookings</h3>
+              </div>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Client</th>
+                    <th>Service</th>
+                    <th>Vehicle</th>
+                    <th>Schedule</th>
+                    <th>Price</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody id="latestBookingsTbody"></tbody>
+              </table>
+            </div>
+          </section>
+
+          <section class="panel stack-panel">
+            <div>
+              <p class="eyebrow">Website Support</p>
+              <h3>Published Services</h3>
+            </div>
+            <div id="servicesOverview" class="service-overview"></div>
+            <div class="divider"></div>
+            <div>
+              <p class="eyebrow">Promotions</p>
+              <h3>Live Offers</h3>
+            </div>
+            <div id="activeOffers" class="offer-stack"></div>
+          </section>
+        </div>
+      </section>
+
+      <section id="bookings" class="page-section hidden">
+        <div class="section-header">
+          <div>
+            <p class="eyebrow">Booking Control</p>
+            <h3>Manage client reservations</h3>
+          </div>
+        </div>
+        <section class="panel">
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Client</th>
+                  <th>Service</th>
+                  <th>Vehicle</th>
+                  <th>Date</th>
+                  <th>Email</th>
+                  <th>Price</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="bookingListTbody"></tbody>
+            </table>
+          </div>
+        </section>
+      </section>
+
+      <section id="services-section" class="page-section hidden">
+        <div class="section-header">
+          <div>
+            <p class="eyebrow">Catalog</p>
+            <h3>Service management</h3>
+          </div>
+          <button id="addServiceBtn" class="primary-btn">Add Service</button>
+        </div>
+        <div id="services-list" class="service-grid"></div>
+      </section>
+
+      <section id="offers" class="page-section hidden">
+        <div class="section-header">
+          <div>
+            <p class="eyebrow">Promotions</p>
+            <h3>Offers visible to clients</h3>
+          </div>
+          <button id="addOfferBtn" class="primary-btn">Add Offer</button>
+        </div>
+        <div id="offerList" class="offer-grid"></div>
+      </section>
+
+      <section id="analytics" class="page-section hidden">
+        <div class="section-header">
+          <div>
+            <p class="eyebrow">Performance</p>
+            <h3>Service and booking insights</h3>
+          </div>
+        </div>
+        <div class="stats-grid analytics-grid">
+          <article class="stat-card"><span>Top Service</span><strong id="topService">None</strong></article>
+          <article class="stat-card"><span>Peak Day</span><strong id="peakDay">None</strong></article>
+          <article class="stat-card"><span>Avg Revenue</span><strong id="avgRevenue">PHP 0</strong></article>
+          <article class="stat-card"><span>Conversion Rate</span><strong id="conversionRate">0%</strong></article>
+        </div>
+        <div class="content-grid two-col">
+          <section class="panel">
+            <div class="panel-heading">
+              <div>
+                <p class="eyebrow">Revenue Mix</p>
+                <h3>Revenue by service</h3>
+              </div>
+            </div>
+            <div class="chart-wrap"><canvas id="revenueChart"></canvas></div>
+          </section>
+          <section class="panel">
+            <div class="panel-heading">
+              <div>
+                <p class="eyebrow">Breakdown</p>
+                <h3>Revenue table</h3>
+              </div>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr><th>Service</th><th>Bookings</th><th>Revenue</th></tr>
+                </thead>
+                <tbody id="revenueTable"></tbody>
+              </table>
+            </div>
+          </section>
+        </div>
+      </section>
+
+      <section id="reports" class="page-section hidden">
+        <div class="section-header">
+          <div>
+            <p class="eyebrow">Executive View</p>
+            <h3>Operations summary</h3>
+          </div>
+        </div>
+        <div class="content-grid two-col">
+          <section class="panel">
+            <p class="eyebrow">Overview</p>
+            <h3>Current business state</h3>
+            <ul class="report-list" id="reportSummary"></ul>
+          </section>
+          <section class="panel">
+            <p class="eyebrow">Action Items</p>
+            <h3>Recommended attention areas</h3>
+            <ul class="report-list" id="reportActions"></ul>
+          </section>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div id="serviceModal" class="modal-backdrop hidden">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div><p class="eyebrow">Service</p><h3 id="modalTitle">Add Service</h3></div>
+        <button type="button" class="icon-btn close-modal" data-close="#serviceModal">Close</button>
+      </div>
+      <form id="serviceForm" class="form-grid">
+        <input type="hidden" id="serviceId">
+        <label><span>Service Name</span><input type="text" id="serviceName" required></label>
+        <label><span>Price</span><input type="number" id="servicePrice" min="0" required></label>
+        <label class="full-span"><span>Description</span><textarea id="serviceDescription" rows="4" required></textarea></label>
+        <div class="modal-actions full-span">
+          <button type="button" class="secondary-btn close-modal" data-close="#serviceModal">Cancel</button>
+          <button type="submit" class="primary-btn">Save Service</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div id="offerModal" class="modal-backdrop hidden">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div><p class="eyebrow">Offer</p><h3 id="offerModalTitle">Add Offer</h3></div>
+        <button type="button" class="icon-btn close-modal" data-close="#offerModal">Close</button>
+      </div>
+      <form id="offerForm" class="form-grid">
+        <input type="hidden" id="offerId">
+        <label><span>Offer Name</span><input type="text" id="offerName" required></label>
+        <label><span>Discount (%)</span><input type="number" id="offerDiscount" min="1" max="100" required></label>
+        <label class="full-span"><span>Description</span><textarea id="offerDescription" rows="3" placeholder="Short client-facing description"></textarea></label>
+        <label><span>Expiry</span><input type="text" id="offerExpiry" placeholder="e.g. 2026-12-31 or ongoing"></label>
+        <div class="modal-actions full-span">
+          <button type="button" class="secondary-btn close-modal" data-close="#offerModal">Cancel</button>
+          <button type="submit" class="primary-btn">Save Offer</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div id="viewServiceModal" class="modal-backdrop hidden">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div><p class="eyebrow">Service Preview</p><h3 id="viewModalTitle">Service</h3></div>
+        <button type="button" class="icon-btn close-modal" data-close="#viewServiceModal">Close</button>
+      </div>
+      <div id="viewModalBody" class="service-preview"></div>
+      <div id="viewModalMeta" class="meta-row"></div>
+    </div>
+  </div>
+
+  <div id="dialogModal" class="modal-backdrop hidden">
+    <div class="modal-card compact-modal">
+      <div class="modal-header">
+        <div><p class="eyebrow" id="dialogEyebrow">Action</p><h3 id="dialogTitle">Confirm</h3></div>
+      </div>
+      <p id="dialogMessage" class="dialog-copy"></p>
+      <div class="modal-actions">
+        <button type="button" id="dialogCancel" class="secondary-btn">Cancel</button>
+        <button type="button" id="dialogConfirm" class="primary-btn">Confirm</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="admin.js"></script>
+</body>
+</html>

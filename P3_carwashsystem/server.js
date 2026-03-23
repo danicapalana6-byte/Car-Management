@@ -2,98 +2,174 @@ const express = require("express");
 const cors = require("cors");
 const nodemailer = require("nodemailer");
 const path = require("path");
-const fs = require("fs");
+const mongoose = require("mongoose");
+const bcrypt = require("bcryptjs");
 
 const app = express();
 
-const dataDir = path.join(__dirname, 'data');
-if (!fs.existsSync(dataDir)) {
-    fs.mkdirSync(dataDir);
+// --- Database Setup ---
+const MONGO_URI = process.env.MONGO_URI || "mongodb://127.0.0.1:27017/carwashpro";
+
+// Import Mongoose Models
+const Client = require('./models/Client');
+const Booking = require('./models/Booking');
+const Feedback = require('./models/Feedback');
+const Service = require('./models/Service');
+const Offer = require('./models/Offer');
+const User = require('./models/User'); // For admin
+
+const SERVICE_IMAGE_MAP = {
+    "Basic Wash": "basic_wash.jpg",
+    "Premium Wash": "Deluxe_Wash.jpg",
+    "Deluxe Wash": "Deluxe_Wash.jpg",
+    "Interior Cleaning": "Interior_Detailing.jpg",
+    "Full Detail": "sp.png",
+    "Tire Shine": "tire_shine.jpg",
+    "Engine Wash": "Engine_Cleaning.jpg",
+    "Headlight Restoration": "Headlight_restoration.jpg",
+    "Wax & Polish": "Wax_&_Polish.jpg",
+    "Scratch Removal": "Scratch_removal.jpg",
+    "Ceramic Coating": "Ceramic_coating.jpg"
+};
+
+function getServiceImagePath(serviceName) {
+    const filename = SERVICE_IMAGE_MAP[serviceName] || "logo.png";
+    return `/client/image/${filename}`;
 }
 
-const readJsonFile = (filename, defaultValue = []) => {
-    const filePath = path.join(dataDir, filename);
-    if (fs.existsSync(filePath)) {
-        const content = fs.readFileSync(filePath);
-        return JSON.parse(content);
+// --- Initial Data Seeding ---
+async function seedDatabase() {
+  console.log('🔄 Seeding database...');
+  
+  const defaultServices = [
+    { name: "Basic Wash", price: 150, description: "Exterior wash", image: "basic_wash.jpg" },
+    { name: "Premium Wash", price: 300, description: "Interior + exterior", image: "Deluxe_Wash.jpg" },
+    { name: "Interior Cleaning", price: 250, description: "Interior vacuum", image: "Interior_Detailing.jpg" },
+    { name: "Full Detail", price: 600, description: "Complete detail", image: "sp.png" },
+    { name: "Tire Shine", price: 100, description: "Tire dressing", image: "tire_shine.jpg" },
+    { name: "Engine Wash", price: 400, description: "Engine bay cleaning", image: "Engine_Cleaning.jpg" },
+    { name: "Headlight Restoration", price: 500, description: "Restore headlight clarity", image: "Headlight_restoration.jpg" },
+    { name: "Wax & Polish", price: 800, description: "Protect and shine your car", image: "Wax_&_Polish.jpg" },
+    { name: "Scratch Removal", price: 1200, description: "Minor scratch repair", image: "Scratch_removal.jpg" },
+    { name: "Ceramic Coating", price: 5000, description: "Long-term paint protection", image: "Ceramic_coating.jpg" }
+  ];
+  
+  const defaultOffers = [
+    { name: 'New Customer 10% Off', discount: 10, description: 'First time customers get 10% off any service', expiry: '2024-12-31'},
+    { name: 'Weekend Special', discount: 15, description: '15% off Fri-Sun bookings', expiry: 'ongoing'}
+  ];
+
+  try {
+    const serviceCount = await Service.countDocuments();
+    console.log(`📊 Found ${serviceCount} services in DB`);
+    
+    if (serviceCount === 0) {
+      console.log('🌱 Seeding Services...');
+      await Service.insertMany(defaultServices);
+      console.log('✅ Services seeded');
     }
-    return defaultValue;
-};
+    
+    const offerCount = await Offer.countDocuments();
+    console.log(`📊 Found ${offerCount} offers in DB`);
+    if (offerCount === 0) {
+      console.log('🌱 Seeding Offers...');
+      await Offer.insertMany(defaultOffers);
+      console.log('✅ Offers seeded');
+    }
+  } catch (error) {
+    console.error('❌ Seed error:', error);
+  }
+}
 
-const writeJsonFile = (filename, data) => {
-    const filePath = path.join(dataDir, filename);
-    fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
-};
+// NOTE: You will need to update your route files to use the Mongoose models.
+// For example, pass the models to the route handlers.
+const profileRoutes = require('./routes/profileRoutes')(Client);
+const feedbackRoutes = require('./routes/feedbackRoutes')(Feedback, Client);
+const hasEmailConfig =
+    process.env.EMAIL_USER &&
+    process.env.EMAIL_PASS &&
+    process.env.EMAIL_USER !== "yourgmail@gmail.com" &&
+    process.env.EMAIL_PASS !== "your_app_password";
 
-let clients = readJsonFile('clients.json');
-let bookings = readJsonFile('bookings.json');
-let feedbacks = readJsonFile('feedbacks.json');
-let services = readJsonFile('services.json', [
-    { name: "Basic Wash", price: 150, description: "Exterior wash" },
-    { name: "Premium Wash", price: 300, description: "Interior + exterior" },
-    { name: "Interior Cleaning", price: 250, description: "Interior vacuum" },
-    { name: "Full Detail", price: 600, description: "Complete detail" }
-]);
-let offers = readJsonFile('offers.json', [
-  {id: 'off1', name: 'New Customer 10% Off', discount: 10, description: 'First time customers get 10% off any service', expiry: '2024-12-31'},
-  {id: 'off2', name: 'Weekend Special', discount: 15, description: '15% off Fri-Sun bookings', expiry: 'ongoing'}
-]);
-
-
-const profileRoutes = require('./routes/profileRoutes')(clients);
-const feedbackRoutes = require('./routes/feedbackRoutes')(feedbacks, clients);
+const transporter = hasEmailConfig
+    ? nodemailer.createTransport({
+        service: "gmail",
+        auth: {
+            user: process.env.EMAIL_USER,
+            pass: process.env.EMAIL_PASS
+        }
+    })
+    : null;
+const clientAuthRoutes = require('./routes/clientAuth')(Client, transporter);
 
 app.use(cors());
-app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: false, limit: '10mb' }));
 
-// serve static files from the public folder (so /client/signup.html works)
+// Serve static files from the public folder
 app.use(express.static(path.join(__dirname, "public")));
 app.use('/uploads', express.static(path.join(__dirname, 'public/uploads')));
 
+// Serve client static files
+app.use('/client', express.static(path.join(__dirname, "client")));
 
 app.use('/api/profile', profileRoutes);
 app.use('/api/feedback', feedbackRoutes);
+app.use('/api/clientAuth', clientAuthRoutes);
 
-const transporter = nodemailer.createTransport({
-    service: "gmail",
-    auth: {
-        user: "yourgmail@gmail.com",
-        pass: "your_app_password"
-    }
-});
-
-app.post('/api/admin/login', (req, res) => {
-    const { username, password } = req.body;
-    if (username === 'admin' && password === 'admin123') {
+app.post('/api/admin/login', async (req, res) => {
+    try {
+        const { username, password } = req.body;
+        const user = await User.findOne({ username });
+        if (!user) {
+            return res.status(401).json({ message: 'Invalid credentials' });
+        }
+        const isMatch = await bcrypt.compare(password, user.password);
+        if (!isMatch) {
+            return res.status(401).json({ message: 'Invalid credentials' });
+        }
+        // Note: Using a simple token. For production, consider JWT (JSON Web Tokens).
         const token = 'admin-token-' + Date.now();
         res.json({ token });
-    } else {
-        res.status(401).json({ message: 'Invalid credentials' });
+    } catch (error) {
+        console.error("Admin login error:", error);
+        res.status(500).json({ message: 'Server error during login' });
     }
 });
 
 
-app.get("/api/services", (req, res) => {
-    res.json(services);
+app.get("/api/services", async (req, res) => {
+    console.log('API /api/services hit');
+    try {
+        const services = await Service.find();
+        console.log(`DB returned ${services.length} services`);
+
+        // Enhance services with images/details
+        const enhanced = services.map(s => ({
+            ...s.toObject(),
+            _id: s._id,
+            image: getServiceImagePath(s.name),
+            duration: s.duration || 45,
+            fullDescription: `${s.description || ''}. Professional car wash service.`
+        }));
+        console.log(`✅ Returning ${enhanced.length} services`);
+        res.json(enhanced);
+    } catch (error) {
+        console.error('Services API error:', error);
+        res.status(500).json({ message: "Error fetching services." });
+    }
 });
 
-app.post("/api/clientAuth/signup", (req, res) => {
-    const { name, email, username, password } = req.body;
-    const newClient = {
-        id: Date.now(),
-        name,
-        email,
-        username,
-        password
-    };
-    clients.push(newClient);
-    writeJsonFile('clients.json', clients);
-    res.json({
-        message: "Registration successful",
-        user: newClient,
-        token: "token-" + newClient.id
-    });
+app.get("/api/offers", async (req, res) => {
+    console.log('API /api/offers hit');
+    try {
+        const offers = await Offer.find();
+        console.log(`DB returned ${offers.length} offers`);
+        res.json(offers);
+    } catch (error) {
+        console.error('Offers API error:', error);
+        res.status(500).json({ message: "Error fetching offers." });
+    }
 });
 
 // POST booking - accept multiple client field names from different client scripts
@@ -105,58 +181,83 @@ app.post("/api/book", async (req, res) => {
     const finalEmail = body.clientEmail || body.email || '';
 
     const booking = {
-        id: Date.now().toString(),
         ...body,  // Save ALL fields from frontend (vehicleType, vehicleModel, plateNumber, etc.)
         name: finalName,
         username: finalUsername,
         email: finalEmail,
         status: body.status || 'pending',
-        createdAt: new Date().toISOString()
     };
 
-    bookings.push(booking);
-    writeJsonFile('bookings.json', bookings);
-
-    // try sending confirmation email if email exists
     try {
-        if (finalEmail) {
-            await transporter.sendMail({
-                from: "yourgmail@gmail.com",
-                to: finalEmail,
-                subject: "CarWash Booking Confirmation",
-                html: `
-          <h2>Booking Confirmed</h2>
-          <p>Name: ${booking.name}</p>
-          <p>Service: ${booking.service}</p>
-          <p>Date: ${booking.date}</p>
-          <p>Time: ${booking.time}</p>
-        `
-            });
-        }
-    } catch (e) {
-        console.log("Email failed", e);
-    }
+        const newBooking = await Booking.create(booking);
 
-    // return created booking for client to immediately display
-    res.status(201).json({ message: "Booking successful", booking });
+        // try sending confirmation email if email exists
+        if (finalEmail && transporter) {
+            try {
+                await transporter.sendMail({
+                    from: process.env.EMAIL_USER || "yourgmail@gmail.com",
+                    to: finalEmail,
+                    subject: "CarWash Booking Confirmation",
+                    html: `
+              <h2>Booking Confirmed</h2>
+              <p>Name: ${booking.name}</p>
+              <p>Service: ${booking.service}</p>
+              <p>Date: ${booking.date}</p>
+              <p>Time: ${booking.time}</p>
+            `
+                });
+            } catch (emailError) {
+                console.error("Failed to send confirmation email:", emailError);
+            }
+        }
+        // return created booking for client to immediately display
+        res.status(201).json({ message: "Booking successful", booking: newBooking });
+
+    } catch (error) {
+        console.error("Booking failed:", error);
+        res.status(500).json({ message: "Error creating booking." });
+    }
 });
 
 // GET bookings by path param (keeps compatibility)
-app.get("/api/bookings/:username", (req, res) => {
-    const userBookings = bookings.filter(b => b.username === req.params.username);
-    res.json(userBookings);
+app.get("/api/bookings/:username", async (req, res) => {
+    try {
+        const userBookings = await Booking.find({ username: req.params.username });
+        res.json(userBookings);
+    } catch (error) {
+        res.status(500).json({ message: "Error fetching bookings." });
+    }
 });
 
 // New: GET bookings by query param (client uses ?clientName= or ?username=)
-app.get("/api/clientBookings", (req, res) => {
-    const qName = req.query.clientName || req.query.username || '';
-    if (!qName) {
-        return res.json([]);
+app.get("/api/clientBookings", async (req, res) => {
+    const identifiers = [
+        req.query.clientName,
+        req.query.username,
+        req.query.email,
+        req.query.legacyUsername,
+        req.query.legacyEmail
+    ].filter(Boolean);
+    console.log('API /api/clientBookings hit for:', identifiers);
+    try {
+        if (identifiers.length === 0) {
+            console.log('No client identifier provided');
+            return res.json([]);
+        }
+        const userBookings = await Booking.find({
+            $or: identifiers.flatMap(value => ([
+                { username: value },
+                { name: value },
+                { email: value },
+                { clientUser: value }
+            ]))
+        });
+        console.log(`Found ${userBookings.length} bookings for provided identifiers`);
+        res.json(userBookings);
+    } catch (error) {
+        console.error('ClientBookings API error:', error);
+        res.status(500).json({ message: "Error fetching client bookings." });
     }
-    const userBookings = bookings.filter(b =>
-        b.username === qName || b.name === qName || b.email === qName || b.clientUser === qName
-    );
-    res.json(userBookings);
 });
 
 // Admin APIs
@@ -172,147 +273,168 @@ const protectAdmin = (req, res, next) => {
 const adminApiRouter = express.Router();
 adminApiRouter.use(protectAdmin);
 
-adminApiRouter.get("/offers", (req, res) => {
-  res.json(offers);
+adminApiRouter.get("/offers", async (req, res) => {
+  try { res.json(await Offer.find()); } catch (e) { res.status(500).json({error: e.message}); }
 });
 
-adminApiRouter.post("/offers", (req, res) => {
-  const newOffer = {id: Date.now().toString(), ...req.body};
-  offers.push(newOffer);
-  writeJsonFile('offers.json', offers);
-  res.status(201).json(newOffer);
+adminApiRouter.post("/offers", async (req, res) => {
+  try {
+    const newOffer = await Offer.create(req.body);
+    res.status(201).json(newOffer);
+  } catch (e) { res.status(500).json({error: e.message}); }
 });
 
-adminApiRouter.put("/offers/:id", (req, res) => {
-  const index = offers.findIndex(o => o.id === req.params.id);
-  if (index !== -1) {
-    offers[index] = {...offers[index], ...req.body};
-    writeJsonFile('offers.json', offers);
-    res.json(offers[index]);
-  } else res.status(404).json({error: 'Not found'});
+adminApiRouter.put("/offers/:id", async (req, res) => {
+  try {
+    const updatedOffer = await Offer.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    if (updatedOffer) res.json(updatedOffer);
+    else res.status(404).json({error: 'Not found'});
+  } catch (e) { res.status(500).json({error: e.message}); }
 });
 
-adminApiRouter.delete("/offers/:id", (req, res) => {
-  const index = offers.findIndex(o => o.id === req.params.id);
-  if (index !== -1) {
-    offers.splice(index, 1);
-    writeJsonFile('offers.json', offers);
-    res.json({message: 'Deleted'});
-  } else res.status(404).json({error: 'Not found'});
+adminApiRouter.delete("/offers/:id", async (req, res) => {
+  try {
+    const deleted = await Offer.findByIdAndDelete(req.params.id);
+    if (deleted) res.json({message: 'Deleted'});
+    else res.status(404).json({error: 'Not found'});
+  } catch (e) { res.status(500).json({error: e.message}); }
 });
 
-adminApiRouter.get("/bookings", (req, res) => {
-    res.json(bookings);
+adminApiRouter.get("/bookings", async (req, res) => {
+    try { res.json(await Booking.find().sort({ createdAt: -1 })); } catch (e) { res.status(500).json({error: e.message}); }
 });
 
-adminApiRouter.get("/clients", (req, res) => {
-    res.json(clients);
+adminApiRouter.get("/clients", async (req, res) => {
+    try { res.json(await Client.find().select('-password')); } catch (e) { res.status(500).json({error: e.message}); }
 });
 
-adminApiRouter.get("/services", (req, res) => {
-    // Enhance services with images/details
-    const enhanced = services.map(s => ({
-        ...s,
-        image: `/image/${s.name.toLowerCase().replace(/ /g, '_')}.jpg`,
-        duration: 45,
-        fullDescription: `${s.description}. Professional car wash service.`
-    }));
-    res.json(enhanced);
+adminApiRouter.get("/services", async (req, res) => {
+    try {
+        const services = await Service.find();
+        // Enhance services with images/details
+        const enhanced = services.map(s => ({
+            ...s.toObject(),
+            _id: s._id, // ensure _id is present
+            image: getServiceImagePath(s.name),
+            duration: 45,
+            fullDescription: `${s.description}. Professional car wash service.`
+        }));
+        res.json(enhanced);
+    } catch (e) { res.status(500).json({error: e.message}); }
 });
 
-adminApiRouter.post("/services", (req, res) => {
-  const newService = {...req.body, id: Date.now().toString()};
-  services.push(newService);
-  writeJsonFile('services.json', services);
-  res.status(201).json(newService);
+adminApiRouter.post("/services", async (req, res) => {
+  try {
+    const newService = await Service.create(req.body);
+    res.status(201).json(newService);
+  } catch (e) { res.status(500).json({error: e.message}); }
 });
 
-adminApiRouter.put("/services/:id", (req, res) => {
-  const index = services.findIndex(s => s.id === req.params.id);
-  if (index !== -1) {
-    services[index] = {...services[index], ...req.body};
-    writeJsonFile('services.json', services);
-    res.json(services[index]);
-  } else res.status(404).json({error: 'Not found'});
+adminApiRouter.put("/services/:id", async (req, res) => {
+  try {
+    const updated = await Service.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    if (updated) res.json(updated);
+    else res.status(404).json({error: 'Not found'});
+  } catch (e) { res.status(500).json({error: e.message}); }
 });
 
-adminApiRouter.delete("/services/:id", (req, res) => {
-  const index = services.findIndex(s => s.id === req.params.id);
-  if (index !== -1) {
-    services.splice(index, 1);
-    writeJsonFile('services.json', services);
-    res.json({message: 'Deleted'});
-  } else res.status(404).json({error: 'Not found'});
+adminApiRouter.delete("/services/:id", async (req, res) => {
+  try {
+    const deleted = await Service.findByIdAndDelete(req.params.id);
+    if (deleted) res.json({message: 'Deleted'});
+    else res.status(404).json({error: 'Not found'});
+  } catch (e) { res.status(500).json({error: e.message}); }
 });
 
 // Update booking
-adminApiRouter.put("/bookings/:id", (req, res) => {
-    const id = req.params.id;
-    const index = bookings.findIndex(b => b.id === id);
-    if (index !== -1) {
-        bookings[index] = { ...bookings[index], ...req.body };
-        writeJsonFile('bookings.json', bookings);
-        res.json(bookings[index]);
-    } else {
-        res.status(404).json({error: 'Booking not found'});
+adminApiRouter.put("/bookings/:id", async (req, res) => {
+    try {
+        const updatedBooking = await Booking.findByIdAndUpdate(req.params.id, req.body, { new: true });
+        if (updatedBooking) {
+            res.json(updatedBooking);
+        } else {
+            res.status(404).json({error: 'Booking not found'});
+        }
+    } catch (error) {
+        res.status(500).json({error: error.message});
     }
 });
 
 // Client booking endpoints
-app.get("/api/book/:id", (req, res) => {
-    const id = req.params.id;
-    const booking = bookings.find(b => b.id === id);
-    if (booking) {
-        res.json(booking);
-    } else {
-        res.status(404).json({ message: "Booking not found" });
+app.get("/api/book/:id", async (req, res) => {
+    try {
+        const booking = await Booking.findById(req.params.id);
+        if (booking) {
+            res.json(booking);
+        } else {
+            res.status(404).json({ message: "Booking not found" });
+        }
+    } catch (error) {
+        res.status(500).json({error: error.message});
     }
 });
 
-app.put("/api/book/:id", (req, res) => {
-    const id = req.params.id;
-    const index = bookings.findIndex(b => b.id === id);
-    if (index === -1) {
-        return res.status(404).json({ message: "Booking not found" });
+app.put("/api/book/:id", async (req, res) => {
+    try {
+        const booking = await Booking.findById(req.params.id);
+        if (!booking) {
+            return res.status(404).json({ message: "Booking not found" });
+        }
+        if (booking.status !== "pending") {
+            return res.status(403).json({ message: "Cannot edit confirmed or completed booking" });
+        }
+        
+        Object.assign(booking, req.body);
+        await booking.save();
+        res.json(booking);
+    } catch (error) {
+        res.status(500).json({error: error.message});
     }
-    if (bookings[index].status !== "pending") {
-        return res.status(403).json({ message: "Cannot edit confirmed or completed booking" });
-    }
-    
-    bookings[index] = { ...bookings[index], ...req.body };
-    writeJsonFile('bookings.json', bookings);
-    res.json(bookings[index]);
 });
 
 // Client-safe DELETE endpoint
-app.delete("/api/book/:id", (req, res) => {
-    const id = req.params.id;
-    const username = req.query.username;
-    if (!username) {
-        return res.status(400).json({ message: "Username required" });
+app.delete("/api/book/:id", async (req, res) => {
+    try {
+        const identifiers = [
+            req.query.username,
+            req.query.email,
+            req.query.legacyUsername,
+            req.query.legacyEmail
+        ].filter(Boolean);
+        if (identifiers.length === 0) {
+            return res.status(400).json({ message: "Client identity required for verification" });
+        }
+        
+        const deletedBooking = await Booking.findOneAndDelete({
+            _id: req.params.id,
+            $or: identifiers.flatMap(value => ([
+                { username: value },
+                { clientUser: value },
+                { email: value }
+            ]))
+        });
+
+        if (!deletedBooking) {
+            return res.status(404).json({ message: "Booking not found or access denied" });
+        }
+        
+        res.json({ message: "Booking cancelled successfully" });
+    } catch (error) {
+        res.status(500).json({error: error.message});
     }
-    
-    const index = bookings.findIndex(b => b.id === id && 
-        (b.username === username || b.clientUser === username));
-    if (index === -1) {
-        return res.status(404).json({ message: "Booking not found or access denied" });
-    }
-    
-    bookings.splice(index, 1);
-    writeJsonFile('bookings.json', bookings);
-    res.json({ message: "Booking cancelled successfully" });
 });
 
 // Delete booking
-adminApiRouter.delete("/bookings/:id", (req, res) => {
-    const id = req.params.id;
-    const index = bookings.findIndex(b => b.id === id);
-    if (index !== -1) {
-        bookings.splice(index, 1);
-        writeJsonFile('bookings.json', bookings);
-        res.json({message: 'Deleted'});
-    } else {
-        res.status(404).json({error: 'Not found'});
+adminApiRouter.delete("/bookings/:id", async (req, res) => {
+    try {
+        const deleted = await Booking.findByIdAndDelete(req.params.id);
+        if (deleted) {
+            res.json({message: 'Deleted'});
+        } else {
+            res.status(404).json({error: 'Not found'});
+        }
+    } catch (error) {
+        res.status(500).json({error: error.message});
     }
 });
 
@@ -323,7 +445,28 @@ app.use('/admin', (req, res, next) => {
     res.redirect('/');
 });
 
-
-app.listen(3000, () => {
-    console.log("Server running on http://localhost:3000");
+app.use((err, req, res, next) => {
+    if (err && err.type === 'entity.too.large') {
+        return res.status(413).json({ message: 'Image upload is too large. Please choose a smaller photo.' });
+    }
+    next(err);
 });
+
+app.get('/', (req, res) => {
+    res.redirect('/client/index.html');
+});
+
+const PORT = process.env.PORT || 10000;
+
+mongoose.connect(MONGO_URI)
+    .then(() => {
+        console.log("✅ MongoDB connected");
+        seedDatabase();
+        app.listen(PORT, () => {
+            console.log("🚀 Server running on port", PORT);
+        });
+    })
+    .catch((err) => {
+        console.error("❌ MongoDB connection error:", err);
+        process.exit(1);
+    });

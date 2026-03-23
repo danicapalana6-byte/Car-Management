@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CarWash Pro | Admin Portal</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="center">
+  <main class="auth-shell auth-login-shell">
+    <section class="auth-visual">
+      <div class="auth-visual-copy">
+        <div class="auth-kicker">CarWash Pro</div>
+        <h1>Admin Portal</h1>
+        <p>Manage the public website experience with a cleaner backend dashboard for bookings, services, and promotions.</p>
+      </div>
+    </section>
+
+    <section class="auth-panel">
+      <div class="auth-panel-inner">
+        <h2>Welcome Back, Admin</h2>
+        <p class="subtitle">Sign in to continue</p>
+        <form id="loginForm">
+          <label for="username">Username</label>
+          <input id="username" autocomplete="username" required>
+        
+          <label for="password">Password</label>
+          <input id="password" type="password" autocomplete="current-password" required>
+        
+          <p id="msg" class="auth-message hidden"></p>
+        
+          <button type="submit" class="auth-login-btn">Sign In</button>
+        </form>
+      </div>
+    </section>
+  </main>
+  <script src="admin.js"></script>
+</body>
+</html>
