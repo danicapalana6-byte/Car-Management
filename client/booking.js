@@ -1173,33 +1173,14 @@ function cancelEdit() {
     }
 
 function showDeleteBookingPopup(message, onConfirm) {
-    const overlay = document.createElement("div");
-    overlay.className = 'modal-backdrop show';
-    overlay.style.zIndex = "10000";
-
-    overlay.innerHTML = `
-        <div class="modal-card" style="border-top: 5px solid #dc3545; text-align:center;">
-            <h3 style="color: #dc3545;">Confirm Cancellation</h3>
-            <p style="margin: 15px 0; color: #555;">${message}</p>
-            <div style="display:flex; gap:10px; justify-content:center;">
-                <button id="confirmCancelYes" class="primary" style="padding:10px 20px; background-color: #dc3545; border:none;">Yes, Cancel</button>
-                <button id="confirmCancelNo" class="btn-cancel" style="padding:10px 20px;">No</button>
-            </div>
-        </div>
-    `;
-    document.body.appendChild(overlay);
-
-    overlay.querySelector("#confirmCancelYes").onclick = () => {
-        onConfirm();
-        overlay.remove();
-    };
-    overlay.querySelector("#confirmCancelNo").onclick = () => overlay.remove();
-
-    overlay.onclick = (e) => {
-        if (e.target === overlay) {
-            overlay.remove();
-        }
-    };
+    createPopupOverlay({
+        title: "Confirm Cancellation",
+        message,
+        tone: "danger",
+        confirmText: "Yes, Cancel",
+        cancelText: "No",
+        onConfirm
+    });
 }
 
 function formatTime12(timeValue) {
@@ -1244,21 +1225,12 @@ function formatReadableDate(dateStr) {
 
 
 function showErrorPopup(message) {
-    const overlay = document.createElement("div");
-    overlay.style = "position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); display:flex; align-items:center; justify-content:center; z-index:9999;";
-
-    overlay.innerHTML = `
-        <div style="background:white; padding:20px; border-radius:12px; text-align:center; max-width:300px; color:#333;">
-            <h3 style="color:#b91c1c; margin-bottom:10px;">Invalid Time</h3>
-            <p style="margin:15px 0; color:#555;">${message}</p>
-            <button id="errorOkBtn" class="primary" style="padding:8px 16px; background-color:#b91c1c; border:none; color:white;">OK</button>
-        </div>
-    `;
-
-    document.body.appendChild(overlay);
-
-    overlay.querySelector("#errorOkBtn").onclick = () => overlay.remove();
-    overlay.onclick = (e) => { if(e.target === overlay) overlay.remove(); };
+    createPopupOverlay({
+        title: "Invalid Time",
+        message,
+        tone: "error",
+        confirmText: "OK"
+    });
 }
 
     function showBookingDetails(booking) {
@@ -1381,6 +1353,14 @@ function clearBookingForm() {
     serviceEl.value = "";
     delete serviceEl.dataset.selectedServiceName;
     delete serviceEl.dataset.selectedServiceValue;
+    editingBookingId = null;
+    if (bookBtn) {
+        bookBtn.textContent = "Confirm Booking";
+        bookBtn.onclick = submitBooking;
+    }
+
+    const cancelEditBtn = document.getElementById("cancelEditBtn");
+    if (cancelEditBtn) cancelEditBtn.remove();
     vehicleTypeSelect.value = "";
     
     dateEl.value = "";
@@ -1399,33 +1379,70 @@ function clearBookingForm() {
     const pricePreview = document.getElementById("pricePreview");
     if (pricePreview) pricePreview.textContent = "₱0";
     
+    const serviceDetails = document.getElementById("serviceDetails");
+    if (serviceDetails) serviceDetails.textContent = "";
+
+    if (msgEl) {
+        msgEl.textContent = "";
+        msgEl.style.display = "none";
+    }
+
     document.getElementById("bookPage").scrollTop = 0;
 }
 clearBookingForm();
-function showConfirmPopup(message, onConfirm) {
+function createPopupOverlay({ title, message, tone = "success", confirmText = "OK", cancelText = "", onConfirm = null }) {
+    document.querySelectorAll('[data-transient-popup="true"]').forEach(node => node.remove());
+
     const overlay = document.createElement("div");
-    overlay.className = 'modal-backdrop show'; 
+    overlay.className = "modal-backdrop show";
+    overlay.dataset.transientPopup = "true";
+    overlay.style.display = "flex";
     overlay.style.zIndex = "10000";
-    
+
     overlay.innerHTML = `
-        <div class="modal-card" style="border-top: 5px solid #28a745; text-align:center;">
-            <h3 style="color: #28a745;">Confirm Reset</h3>
-            <p style="margin: 15px 0; color: #555;">${message}</p>
-            <div style="display:flex; gap:10px; justify-content:center;">
-                <button id="confirmResetYes" class="primary" style="padding:10px 20px; background-color: #28a745; border:none;">Yes, Reset</button>
-                <button id="confirmResetNo" class="btn-cancel" style="padding:10px 20px;">Cancel</button>
+        <div class="modal-card popup-card popup-card--${tone}">
+            <h3 class="popup-title">${title}</h3>
+            <div class="popup-message">${message}</div>
+            <div class="popup-actions">
+                ${cancelText ? `<button type="button" class="btn-cancel popup-cancel">${cancelText}</button>` : ""}
+                <button type="button" class="primary popup-confirm">${confirmText}</button>
             </div>
         </div>
     `;
+
     document.body.appendChild(overlay);
 
-    overlay.querySelector("#confirmResetYes").onclick = () => {
-        onConfirm();
-        overlay.remove();
+    const closePopup = () => overlay.remove();
+    const confirmBtn = overlay.querySelector(".popup-confirm");
+    const cancelBtn = overlay.querySelector(".popup-cancel");
+
+    confirmBtn.onclick = async () => {
+        if (typeof onConfirm === "function") {
+            await onConfirm();
+        }
+        closePopup();
     };
-    overlay.querySelector("#confirmResetNo").onclick = () => overlay.remove();
-    
-    overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
+
+    if (cancelBtn) {
+        cancelBtn.onclick = closePopup;
+    }
+
+    overlay.onclick = (e) => {
+        if (e.target === overlay) {
+            closePopup();
+        }
+    };
+}
+
+function showConfirmPopup(message, onConfirm) {
+    createPopupOverlay({
+        title: "Confirm Reset",
+        message,
+        tone: "success",
+        confirmText: "Yes, Reset",
+        cancelText: "Cancel",
+        onConfirm
+    });
 }
 
     const resetBtn = document.getElementById("resetBtn");
@@ -1446,24 +1463,14 @@ function showConfirmPopup(message, onConfirm) {
 
 
     function showBookingPopup(message, onConfirm) {
-        const overlay = document.createElement("div");
-        overlay.style = "position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); display:flex; align-items:center; justify-content:center; z-index:9999;";
-        overlay.innerHTML = `
-            <div style="background:white; padding:20px; border-radius:12px; text-align:center; max-width:300px; color:#333;">
-                <p>${message}</p>
-                <div style="margin-top:15px; display:flex; gap:10px; justify-content:center;">
-                    <button id="confirmBtn" class="primary" style="padding:8px 16px;">Confirm</button>
-                    <button id="cancelBtn" style="padding:8px 16px;">Cancel</button>
-                </div>
-            </div>
-        `;
-        document.body.appendChild(overlay);
-
-        overlay.querySelector("#confirmBtn").onclick = () => {
-            onConfirm();
-            overlay.remove();
-        };
-        overlay.querySelector("#cancelBtn").onclick = () => overlay.remove();
+        createPopupOverlay({
+            title: "Confirm Booking",
+            message,
+            tone: "info",
+            confirmText: "Confirm",
+            cancelText: "Cancel",
+            onConfirm
+        });
     }
 
 if (bookBtn) {
@@ -1551,33 +1558,14 @@ if (bookBtn) {
     }
 
 function showDeleteFeedbackPopup(message, onConfirm) {
-    const overlay = document.createElement("div");
-    overlay.className = 'modal-backdrop show';
-    overlay.style.zIndex = "10000";
-
-    overlay.innerHTML = `
-        <div class="modal-card" style="border-top: 5px solid #dc3545; text-align:center;">
-            <h3 style="color: #dc3545;">Confirm Deletion</h3>
-            <p style="margin: 15px 0; color: #555;">${message}</p>
-            <div style="display:flex; gap:10px; justify-content:center;">
-                <button id="confirmDeleteYes" class="primary" style="padding:10px 20px; background-color: #dc3545; border:none;">Yes, Delete</button>
-                <button id="confirmDeleteNo" class="btn-cancel" style="padding:10px 20px;">Cancel</button>
-            </div>
-        </div>
-    `;
-    document.body.appendChild(overlay);
-
-    overlay.querySelector("#confirmDeleteYes").onclick = () => {
-        onConfirm();
-        overlay.remove();
-    };
-    overlay.querySelector("#confirmDeleteNo").onclick = () => overlay.remove();
-
-    overlay.onclick = (e) => {
-        if (e.target === overlay) {
-            overlay.remove();
-        }
-    };
+    createPopupOverlay({
+        title: "Confirm Deletion",
+        message,
+        tone: "danger",
+        confirmText: "Yes, Delete",
+        cancelText: "Cancel",
+        onConfirm
+    });
 }
 
 
@@ -1663,25 +1651,12 @@ function showDeleteFeedbackPopup(message, onConfirm) {
 }
 
    function showFeedbackPopup(message) {
-    const overlay = document.createElement("div");
-    overlay.className = 'feedback-popup-overlay';
-    overlay.style.display = "flex";
-
-    overlay.innerHTML = `
-        <div class="feedback-popup-box" style="border-top:4px solid #2e7d32; max-width:420px; text-align:center;">
-            <h3 style="color:#2e7d32; margin-bottom:10px;">Success</h3>
-            <p style="margin-bottom:16px; color:#355b39;">${message}</p>
-            <button id="okBtn" class="primary" style="padding:10px 18px;">OK</button>
-        </div>
-    `;
-
-    document.body.appendChild(overlay);
-
-    const closePopup = () => overlay.remove();
-    overlay.querySelector("#okBtn").onclick = closePopup;
-    overlay.onclick = (e) => {
-        if (e.target === overlay) closePopup();
-    };
+    createPopupOverlay({
+        title: "Success",
+        message,
+        tone: "success",
+        confirmText: "OK"
+    });
 }
 
 async function submitBooking() {
@@ -1739,9 +1714,9 @@ async function submitBooking() {
             lsSet(LS_BOOK, list);
 
             clearBookingForm();
-            await loadBookings();
             showPage("bookingsPage");
             showFeedbackPopup("Booking successful! Your booking is now listed in My Bookings.");
+            loadBookings().catch(error => console.error("Failed to refresh bookings:", error));
         } catch (error) {
             console.error("Booking error:", error);
             showMsg("An error occurred. Please try again.", false);
