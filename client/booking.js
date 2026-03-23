@@ -1765,6 +1765,45 @@ setTimeout(() => loadServicesDynamic().catch(e => console.warn('Dynamic load fai
 loadServicesDynamic().catch(e => console.warn('API refresh failed:', e));
 loadBookings();
 loadMyFeedbacks();
+loadOffers();
+
+async function loadOffers() {
+    const offersSection = document.getElementById("offers-section");
+    if (!offersSection) {
+        console.error("offers-section not found!");
+        return;
+    }
+
+    try {
+        const response = await fetch('/api/offers');
+        if (response.ok) {
+            const offers = await response.json();
+            console.log('Offers loaded from server:', offers.length);
+
+            if (offers.length > 0) {
+                offersSection.innerHTML = ''; // Clear loading spinner
+                offers.forEach(offer => {
+                    const offerCard = document.createElement("div");
+                    offerCard.className = "card";
+                    offerCard.innerHTML = `
+                        <h4>${escapeHtml(offer.name)}</h4>
+                        <p class="small muted">${escapeHtml(offer.description)}</p>
+                        <div class="small"><strong>${offer.discount}% off</strong> (Expires: ${offer.expiry})</div>
+                    `;
+                    offersSection.appendChild(offerCard);
+                });
+            } else {
+                offersSection.innerHTML = '<p class="muted">No current offers available.</p>';
+            }
+        } else {
+            console.warn('Server /api/offers failed (' + response.status + '), hiding offers section.');
+            offersSection.style.display = 'none';
+        }
+    } catch (error) {
+        console.error("Error loading offers:", error);
+        offersSection.innerHTML = '<p class="muted">Could not load offers at this time.</p>';
+    }
+}
     
     // Refresh bookings periodically
     setInterval(loadBookings, 3000);

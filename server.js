@@ -160,6 +160,18 @@ app.get("/api/services", async (req, res) => {
     }
 });
 
+app.get("/api/offers", async (req, res) => {
+    console.log('API /api/offers hit');
+    try {
+        const offers = await Offer.find();
+        console.log(`DB returned ${offers.length} offers`);
+        res.json(offers);
+    } catch (error) {
+        console.error('Offers API error:', error);
+        res.status(500).json({ message: "Error fetching offers." });
+    }
+});
+
 // POST booking - accept multiple client field names from different client scripts
 app.post("/api/book", async (req, res) => {
     const body = req.body || {};
