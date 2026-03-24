@@ -6,7 +6,7 @@ const FALLBACK_SERVICES = [
         duration: 30,
         description: "Quick exterior wash",
         fullDescription: "Our Basic Wash includes exterior hand wash, rims and tire cleaning, hand drying, and light interior vacuum. Perfect for weekly maintenance to keep your car looking fresh.",
-        image: "./image/basic_wash.jpg",
+        image: "/client/image/basic_wash.jpg",
     },
     {
         _id: "deluxe_wash",
@@ -15,7 +15,7 @@ const FALLBACK_SERVICES = [
         duration: 60,
         description: "Full exterior & interior clean",
         fullDescription: "Deluxe Wash includes everything in Basic Wash plus detailed interior cleaning, dashboard wipe down, interior windows, and tire dressing. Ideal for complete cleaning experience.",
-        image: "./image/Deluxe_Wash.jpg",
+        image: "/client/image/Deluxe_Wash.jpg",
     },
     {
         _id: "wax_polish",
@@ -24,7 +24,7 @@ const FALLBACK_SERVICES = [
         duration: 90,
         description: "Protect and shine your car",
         fullDescription: "Applies premium carnauba wax and polish to exterior after thorough wash. Enhances paint shine, adds protective layer against UV and dirt, includes interior vacuuming.",
-        image: "./image/Wax_&_Polish.jpg",
+        image: "/client/image/Wax_&_Polish.jpg",
     },
     {
         _id: "interior_detail",
@@ -33,7 +33,7 @@ const FALLBACK_SERVICES = [
         duration: 120,
         description: "Deep interior cleaning",
         fullDescription: "Complete interior cleaning including vacuuming carpets/seats, shampooing fabric seats, cleaning leather, wiping dashboards, vents, and panels. Removes odors and stains effectively.",
-        image: "./image/Interior_Detailing.jpg",
+        image: "/client/image/Interior_Detailing.jpg",
     },
     {
         _id: "engine_clean",
@@ -42,7 +42,7 @@ const FALLBACK_SERVICES = [
         duration: 60,
         description: "Safe engine wash",
         fullDescription: "Careful engine compartment cleaning using degreasers and high-pressure water where safe. Removes grime and protects engine parts for better performance and longevity.",
-        image: "./image/Engine_Cleaning.jpg",
+        image: "/client/image/Engine_Cleaning.jpg",
     },
     {
         _id: "tire_shine",
@@ -51,7 +51,7 @@ const FALLBACK_SERVICES = [
         duration: 20,
         description: "Clean & glossy tires",
         fullDescription: "We clean and shine all tires and rims using premium tire dressing products. Removes dirt and adds long-lasting glossy finish.",
-        image: "./image/tire_shine.jpg",
+        image: "/client/image/tire_shine.jpg",
     },
     {
         _id: "headlight_restore",
@@ -60,7 +60,7 @@ const FALLBACK_SERVICES = [
         duration: 45,
         description: "Restore headlight clarity",
         fullDescription: "Removes oxidation and yellowing from headlights, restoring brightness and safety during night driving.",
-        image: "./image/Headlight_restoration.jpg",
+        image: "/client/image/Headlight_restoration.jpg",
     },
     {
         _id: "scratch_removal",
@@ -69,7 +69,7 @@ const FALLBACK_SERVICES = [
         duration: 90,
         description: "Minor scratch repair",
         fullDescription: "Removes minor scratches and swirls using polishing compounds. Improves car appearance without repainting.",
-        image: "./image/scratch_removal.jpg",
+        image: "/client/image/Scratch_removal.jpg",
     },
     {
         _id: "ceramic_coating",
@@ -78,7 +78,7 @@ const FALLBACK_SERVICES = [
         duration: 180,
         description: "Long-term paint protection",
         fullDescription: "Applies premium ceramic coating to protect paint from UV rays, dirt, and minor scratches. Enhances gloss and makes cleaning easier. Includes wash and prep.",
-        image: "./image/Ceramic_coating.jpg",
+        image: "/client/image/Ceramic_coating.jpg",
     },
     {
         _id: "special_offer",
@@ -87,7 +87,7 @@ const FALLBACK_SERVICES = [
         duration: 180,
         description: "Limited-time premium service",
         fullDescription: "Our Special Offer Service is designed for car enthusiasts who want everything done in one go! This includes full exterior wash, premium wax & polish, deep interior detailing, tire & rim shine, engine cleaning, headlight restoration, and minor scratch removal. Perfect for restoring your vehicle to showroom condition. This service is only available for a limited period, so grab it while you can!",
-        image: "./image/sp.png",
+        image: "/client/image/sp.png",
     },
 ];
 
@@ -382,7 +382,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     const user = localStorage.getItem("clientUsername") || "";
     const email = localStorage.getItem("clientEmail") || "-";
     const number = localStorage.getItem("clientNumber") || "-";
-    const pic = localStorage.getItem("clientProfilePicture") || "./image/logo.png";
+    const pic = localStorage.getItem("clientProfilePicture") || "/client/image/logo.png";
 
     if (timeEl) {
     timeEl.setAttribute("min", "09:00"); // 9 AM

@@ -22,6 +22,7 @@
         <button id="btnDashboard" class="nav-btn active" data-page="dashboard">Dashboard</button>
         <button id="btnBookings" class="nav-btn" data-page="bookings">Bookings</button>
         <button id="btnServices" class="nav-btn" data-page="services-section">Services</button>
+        <button id="btnFeedbacks" class="nav-btn" data-page="feedbacks">Feedbacks</button>
         <button id="btnOffers" class="nav-btn" data-page="offers">Offers</button>
         <button id="btnAnalytics" class="nav-btn" data-page="analytics">Analytics</button>
         <button id="btnReports" class="nav-btn" data-page="reports">Reports</button>
@@ -108,6 +109,7 @@
             <p class="eyebrow">Booking Control</p>
             <h3>Manage client reservations</h3>
           </div>
+          <button id="addBookingBtn" class="primary-btn">Add Booking</button>
         </div>
         <section class="panel">
           <div class="table-wrap">
@@ -130,7 +132,41 @@
         </section>
       </section>
 
-      <section id="services-section" class="page-section hidden">
+      <div id="bookingModal" class="modal-backdrop hidden">
+        <div class="modal-card">
+          <div class="modal-header">
+            <div><p class="eyebrow">Booking</p><h3 id="bookingModalTitle">Add Booking</h3></div>
+            <button type="button" class="icon-btn close-modal" data-close="#bookingModal">Close</button>
+          </div>
+          <form id="bookingForm" class="form-grid">
+            <input type="hidden" id="bookingId">
+            <label><span>Client Name</span><input type="text" id="bookingName" required></label>
+            <label><span>Service</span><input type="text" id="bookingService" required></label>
+            <label><span>Date</span><input type="date" id="bookingDate" required></label>
+            <label><span>Time</span><input type="time" id="bookingTime" required></label>
+            <label><span>Vehicle Type</span><input type="text" id="bookingVehicleType"></label>
+            <label><span>Vehicle Model</span><input type="text" id="bookingVehicleModel"></label>
+            <label><span>Plate Number</span><input type="text" id="bookingPlateNumber"></label>
+            <label><span>Email</span><input type="email" id="bookingEmail"></label>
+            <label><span>Price</span><input type="number" id="bookingPrice" min="0" required></label>
+            <label><span>Status</span>
+              <select id="bookingStatus" required>
+                <option value="pending">Pending</option>
+                <option value="confirmed">Confirmed</option>
+                <option value="completed">Completed</option>
+                <option value="cancelled">Cancelled</option>
+              </select>
+            </label>
+            <div class="modal-actions full-span">
+              <button type="button" class="secondary-btn close-modal" data-close="#bookingModal">Cancel</button>
+              <button type="submit" class="primary-btn">Save Booking</button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+
+<section id="services-section" class="page-section hidden">
         <div class="section-header">
           <div>
             <p class="eyebrow">Catalog</p>
@@ -139,6 +175,16 @@
           <button id="addServiceBtn" class="primary-btn">Add Service</button>
         </div>
         <div id="services-list" class="service-grid"></div>
+      </section>
+
+      <section id="feedbacks" class="page-section hidden">
+        <div class="section-header">
+          <div>
+            <p class="eyebrow">Customer Feedback</p>
+            <h3>All feedback from clients</h3>
+          </div>
+        </div>
+        <div id="feedbackList" class="feedback-grid"></div>
       </section>
 
       <section id="offers" class="page-section hidden">
@@ -227,9 +273,20 @@
         <input type="hidden" id="serviceId">
         <label><span>Service Name</span><input type="text" id="serviceName" required></label>
         <label><span>Price</span><input type="number" id="servicePrice" min="0" required></label>
-        <label class="full-span"><span>Description</span><textarea id="serviceDescription" rows="4" required></textarea></label>
+        <label class="full-span"><span>Description</span><textarea id="serviceDescription" rows="2" required></textarea></label>
+        <label><span>Full Description</span><textarea id="serviceFullDescription" rows="3"></textarea></label>
+        <label><span>Duration (minutes)</span><input type="number" id="serviceDuration" min="15" max="300"></label>
+        <label class="full-span"><span>Bullet Points (one per line)</span><textarea id="serviceBulletPoints" rows="3" placeholder="Reliable cleaning...
+A good choice..."></textarea></label>
+        <label class="file-upload">
+          <span>Service Image</span>
+          <input type="file" id="serviceImage" accept="image/*">
+          <div id="serviceImagePreview" class="image-preview" style="display:none;">
+            <img id="serviceImagePreviewImg">
+            <button type="button" class="remove-image">Remove</button>
+          </div>
+        </label>
         <div class="modal-actions full-span">
-          <button type="button" class="secondary-btn close-modal" data-close="#serviceModal">Cancel</button>
           <button type="submit" class="primary-btn">Save Service</button>
         </div>
       </form>

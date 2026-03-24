@@ -4,7 +4,7 @@ const nodemailer = require("nodemailer");
 const path = require("path");
 const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
-
+const fs = require("fs");
 const app = express();
 
 // --- Database Setup ---
@@ -42,16 +42,16 @@ async function seedDatabase() {
   console.log('🔄 Seeding database...');
   
   const defaultServices = [
-    { name: "Basic Wash", price: 150, description: "Exterior wash", image: "basic_wash.jpg" },
-    { name: "Premium Wash", price: 300, description: "Interior + exterior", image: "Deluxe_Wash.jpg" },
-    { name: "Interior Cleaning", price: 250, description: "Interior vacuum", image: "Interior_Detailing.jpg" },
-    { name: "Full Detail", price: 600, description: "Complete detail", image: "sp.png" },
-    { name: "Tire Shine", price: 100, description: "Tire dressing", image: "tire_shine.jpg" },
-    { name: "Engine Wash", price: 400, description: "Engine bay cleaning", image: "Engine_Cleaning.jpg" },
-    { name: "Headlight Restoration", price: 500, description: "Restore headlight clarity", image: "Headlight_restoration.jpg" },
-    { name: "Wax & Polish", price: 800, description: "Protect and shine your car", image: "Wax_&_Polish.jpg" },
-    { name: "Scratch Removal", price: 1200, description: "Minor scratch repair", image: "Scratch_removal.jpg" },
-    { name: "Ceramic Coating", price: 5000, description: "Long-term paint protection", image: "Ceramic_coating.jpg" }
+    { _id: "basic_wash", name: "Basic Wash", price: 200, duration: 30, description: "Quick exterior wash", fullDescription: "Our Basic Wash includes exterior hand wash, rims and tire cleaning, hand drying, and light interior vacuum. Perfect for weekly maintenance to keep your car looking fresh.", image: "/client/image/basic_wash.jpg" },
+    { _id: "deluxe_wash", name: "Deluxe Wash", price: 400, duration: 60, description: "Full exterior & interior clean", fullDescription: "Deluxe Wash includes everything in Basic Wash plus detailed interior cleaning, dashboard wipe down, interior windows, and tire dressing. Ideal for complete cleaning experience.", image: "/client/image/Deluxe_Wash.jpg" },
+    { _id: "wax_polish", name: "Wax & Polish", price: 800, duration: 90, description: "Protect and shine your car", fullDescription: "Applies premium carnauba wax and polish to exterior after thorough wash. Enhances paint shine, adds protective layer against UV and dirt, includes interior vacuuming.", image: "/client/image/Wax_&_Polish.jpg" },
+    { _id: "interior_detail", name: "Interior Detailing", price: 700, duration: 120, description: "Deep interior cleaning", fullDescription: "Complete interior cleaning including vacuuming carpets/seats, shampooing fabric seats, cleaning leather, wiping dashboards, vents, and panels. Removes odors and stains effectively.", image: "/client/image/Interior_Detailing.jpg" },
+    { _id: "engine_clean", name: "Engine Cleaning", price: 900, duration: 60, description: "Safe engine wash", fullDescription: "Careful engine compartment cleaning using degreasers and high-pressure water where safe. Removes grime and protects engine parts for better performance and longevity.", image: "/client/image/Engine_Cleaning.jpg" },
+    { _id: "tire_shine", name: "Tire & Rim Shine", price: 150, duration: 20, description: "Clean & glossy tires", fullDescription: "We clean and shine all tires and rims using premium tire dressing products. Removes dirt and adds long-lasting glossy finish.", image: "/client/image/tire_shine.jpg" },
+    { _id: "headlight_restore", name: "Headlight Restoration", price: 300, duration: 45, description: "Restore headlight clarity", fullDescription: "Removes oxidation and yellowing from headlights, restoring brightness and safety during night driving.", image: "/client/image/Headlight_restoration.jpg" },
+    { _id: "scratch_removal", name: "Scratch Removal", price: 1200, duration: 90, description: "Minor scratch repair", fullDescription: "Removes minor scratches and swirls using polishing compounds. Improves car appearance without repainting.", image: "/client/image/Scratch_removal.jpg" },
+    { _id: "ceramic_coating", name: "Ceramic Coating", price: 5000, duration: 180, description: "Long-term paint protection", fullDescription: "Applies premium ceramic coating to protect paint from UV rays, dirt, and minor scratches. Enhances gloss and makes cleaning easier. Includes wash and prep.", image: "/client/image/Ceramic_coating.jpg" },
+    { _id: "special_offer", name: "Special Offer Service", price: 999, duration: 180, description: "Limited-time premium service", fullDescription: "Our Special Offer Service is designed for car enthusiasts who want everything done in one go! This includes full exterior wash, premium wax & polish, deep interior detailing, tire & rim shine, engine cleaning, headlight restoration, and minor scratch removal. Perfect for restoring your vehicle to showroom condition. This service is only available for a limited period, so grab it while you can!", image: "/client/image/sp.png" }
   ];
   
   const defaultOffers = [
@@ -63,11 +63,11 @@ async function seedDatabase() {
     const serviceCount = await Service.countDocuments();
     console.log(`📊 Found ${serviceCount} services in DB`);
     
-    if (serviceCount === 0) {
-      console.log('🌱 Seeding Services...');
-      await Service.insertMany(defaultServices);
-      console.log('✅ Services seeded');
-    }
+    console.log('🌱 Forcing sync of Services to match client-side data...');
+    await Service.deleteMany({});
+    const servicesToInsert = defaultServices.map(({ _id, ...rest }) => rest);
+    await Service.insertMany(servicesToInsert);
+    console.log('✅ Services synced');
     
     const offerCount = await Offer.countDocuments();
     console.log(`📊 Found ${offerCount} offers in DB`);
@@ -112,6 +112,54 @@ app.use('/uploads', express.static(path.join(__dirname, 'public/uploads')));
 
 // Serve client static files
 app.use('/client', express.static(path.join(__dirname, "client")));
+// Fallback for images folder naming (if the folder is named 'images' instead of 'image')
+app.use('/client/image', express.static(path.join(__dirname, "client", "images")));
+
+// Cascade profile updates to Bookings and Feedbacks so data isn't lost
+app.put('/api/profile/:id', async (req, res, next) => {
+    try {
+        const oldClient = await Client.findById(req.params.id);
+        if (oldClient && req.body) {
+            const updates = {};
+            if (req.body.username && req.body.username !== oldClient.username) {
+                updates.username = req.body.username;
+                updates.clientUser = req.body.username;
+            }
+            if (req.body.name && req.body.name !== oldClient.name) {
+                updates.name = req.body.name;
+                updates.clientName = req.body.name;
+            }
+            if (req.body.email && req.body.email !== oldClient.email) {
+                updates.email = req.body.email;
+                updates.clientEmail = req.body.email;
+            }
+
+            if (Object.keys(updates).length > 0) {
+                const identifiers = [oldClient.username, oldClient.email, oldClient.name].filter(Boolean);
+                if (identifiers.length > 0) {
+                    const searchConditions = {
+                        $or: identifiers.flatMap(val => [
+                            { username: val }, { email: val }, { name: val }, { clientUser: val }
+                        ])
+                    };
+                    await Booking.updateMany(searchConditions, { $set: updates });
+                    
+                    const fbUpdates = {};
+                    if (updates.name) fbUpdates.user = updates.name;
+                    if (updates.username) fbUpdates.username = updates.username;
+                    
+                    if (Object.keys(fbUpdates).length > 0) {
+                        await Feedback.updateMany(
+                            { $or: identifiers.flatMap(val => [{ user: val }, { username: val }]) },
+                            { $set: fbUpdates }
+                        );
+                    }
+                }
+            }
+        }
+    } catch (e) { console.error("Cascade update error:", e); }
+    next();
+});
 
 app.use('/api/profile', profileRoutes);
 app.use('/api/feedback', feedbackRoutes);
@@ -148,9 +196,9 @@ app.get("/api/services", async (req, res) => {
         const enhanced = services.map(s => ({
             ...s.toObject(),
             _id: s._id,
-            image: getServiceImagePath(s.name),
+            image: s.image || getServiceImagePath(s.name),
             duration: s.duration || 45,
-            fullDescription: `${s.description || ''}. Professional car wash service.`
+            fullDescription: s.fullDescription || `${s.description || ''}. Professional car wash service.`
         }));
         console.log(`✅ Returning ${enhanced.length} services`);
         res.json(enhanced);
@@ -300,6 +348,13 @@ adminApiRouter.delete("/offers/:id", async (req, res) => {
   } catch (e) { res.status(500).json({error: e.message}); }
 });
 
+adminApiRouter.post("/bookings", async (req, res) => {
+  try {
+    const newBooking = await Booking.create(req.body);
+    res.status(201).json(newBooking);
+  } catch (e) { res.status(500).json({error: e.message}); }
+});
+
 adminApiRouter.get("/bookings", async (req, res) => {
     try { res.json(await Booking.find().sort({ createdAt: -1 })); } catch (e) { res.status(500).json({error: e.message}); }
 });
@@ -311,28 +366,67 @@ adminApiRouter.get("/clients", async (req, res) => {
 adminApiRouter.get("/services", async (req, res) => {
     try {
         const services = await Service.find();
+        
+        if (services.length === 0) {
+            return res.json([
+                { _id: "basic_wash", name: "Basic Wash", price: 200, duration: 30, description: "Quick exterior wash", fullDescription: "Our Basic Wash includes exterior hand wash, rims and tire cleaning, hand drying, and light interior vacuum. Perfect for weekly maintenance to keep your car looking fresh.", image: "/client/image/basic_wash.jpg" },
+                { _id: "deluxe_wash", name: "Deluxe Wash", price: 400, duration: 60, description: "Full exterior & interior clean", fullDescription: "Deluxe Wash includes everything in Basic Wash plus detailed interior cleaning, dashboard wipe down, interior windows, and tire dressing. Ideal for complete cleaning experience.", image: "/client/image/Deluxe_Wash.jpg" }
+            ]);
+        }
+        
         // Enhance services with images/details
         const enhanced = services.map(s => ({
             ...s.toObject(),
-            _id: s._id, // ensure _id is present
-            image: getServiceImagePath(s.name),
-            duration: 45,
-            fullDescription: `${s.description}. Professional car wash service.`
+            _id: s._id,
+            image: s.image || getServiceImagePath(s.name),
+            duration: s.duration || 45,
+            fullDescription: s.fullDescription || `${s.description || ''}. Professional car wash service.`
         }));
         res.json(enhanced);
     } catch (e) { res.status(500).json({error: e.message}); }
 });
 
-adminApiRouter.post("/services", async (req, res) => {
+const multer = require('multer');
+const uploadDir = path.join(__dirname, 'public/uploads/services');
+if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
+
+const serviceStorage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, uploadDir),
+  filename: (req, file, cb) => cb(null, Date.now() + '-' + file.originalname)
+});
+
+const serviceUpload = multer({ 
+  storage: serviceStorage,
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype.startsWith('image/')) cb(null, true);
+    else cb(new Error('Only images allowed'), false);
+  }
+}).single('image');
+
+adminApiRouter.post("/services", serviceUpload, async (req, res) => {
   try {
-    const newService = await Service.create(req.body);
+    const serviceData = {
+      name: req.body.name,
+      price: Number(req.body.price),
+      description: req.body.description,
+      fullDescription: req.body.fullDescription,
+      duration: req.body.duration,
+      bulletPoints: req.body.bulletPoints,
+      image: req.file ? `/uploads/services/${req.file.filename}` : null
+    };
+    const newService = await Service.create(serviceData);
     res.status(201).json(newService);
   } catch (e) { res.status(500).json({error: e.message}); }
 });
 
-adminApiRouter.put("/services/:id", async (req, res) => {
+adminApiRouter.put("/services/:id", serviceUpload, async (req, res) => {
   try {
-    const updated = await Service.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    const updateData = { ...req.body };
+    if (req.file) {
+      updateData.image = `/uploads/services/${req.file.filename}`;
+    }
+    const updated = await Service.findByIdAndUpdate(req.params.id, updateData, { new: true });
     if (updated) res.json(updated);
     else res.status(404).json({error: 'Not found'});
   } catch (e) { res.status(500).json({error: e.message}); }
@@ -359,6 +453,33 @@ adminApiRouter.put("/bookings/:id", async (req, res) => {
         res.status(500).json({error: error.message});
     }
 });
+
+adminApiRouter.get("/feedbacks", async (req, res) => {
+    try { res.json(await Feedback.find().sort({ createdAt: -1 })); } catch (e) { res.status(500).json({error: e.message}); }
+});
+
+adminApiRouter.delete("/feedbacks/:id", async (req, res) => {
+    try {
+        const deleted = await Feedback.findByIdAndDelete(req.params.id);
+        if (deleted) res.json({message: 'Feedback deleted'});
+        else res.status(404).json({error: 'Not found'});
+    } catch (e) { res.status(500).json({error: e.message}); }
+});
+
+adminApiRouter.delete("/bookings/:id", async (req, res) => {
+    try {
+        const deleted = await Booking.findByIdAndDelete(req.params.id);
+        if (deleted) {
+            res.json({message: 'Deleted'});
+        } else {
+            res.status(404).json({error: 'Not found'});
+        }
+    } catch (error) {
+        res.status(500).json({error: error.message});
+    }
+});
+
+app.use('/api/admin', adminApiRouter);
 
 // Client booking endpoints
 app.get("/api/book/:id", async (req, res) => {
@@ -424,24 +545,11 @@ app.delete("/api/book/:id", async (req, res) => {
     }
 });
 
-// Delete booking
-adminApiRouter.delete("/bookings/:id", async (req, res) => {
-    try {
-        const deleted = await Booking.findByIdAndDelete(req.params.id);
-        if (deleted) {
-            res.json({message: 'Deleted'});
-        } else {
-            res.status(404).json({error: 'Not found'});
-        }
-    } catch (error) {
-        res.status(500).json({error: error.message});
-    }
-});
+// Serve admin static files
+app.use('/admin', express.static(path.join(__dirname, 'admin')));
 
-app.use('/api/admin', adminApiRouter);
-
-// prevent direct access to admin folder
-app.use('/admin', (req, res, next) => {
+// Block other /admin routes (e.g. APIs) to prevent direct access
+app.use('/admin/', (req, res, next) => {
     res.redirect('/');
 });
 

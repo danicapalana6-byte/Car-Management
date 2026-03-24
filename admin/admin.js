@@ -4,6 +4,7 @@
     dashboard: "Dashboard",
     bookings: "Bookings",
     "services-section": "Services",
+    feedbacks: "Feedbacks",
     offers: "Offers",
     analytics: "Analytics",
     reports: "Reports"
@@ -51,6 +52,7 @@
       ["btnDashboard", "dashboard"],
       ["btnBookings", "bookings"],
       ["btnServices", "services-section"],
+      ["btnFeedbacks", "feedbacks"],
       ["btnOffers", "offers"],
       ["btnAnalytics", "analytics"],
       ["btnReports", "reports"]
@@ -66,6 +68,8 @@
       await refreshState();
       renderAll();
     });
+    document.getElementById("addBookingBtn")?.addEventListener("click", () => openBookingModal());
+    document.getElementById("bookingForm")?.addEventListener("submit", saveBooking);
     document.getElementById("addServiceBtn")?.addEventListener("click", () => openServiceModal());
     document.getElementById("addOfferBtn")?.addEventListener("click", () => openOfferModal());
     document.getElementById("serviceForm")?.addEventListener("submit", saveService);
@@ -93,18 +97,20 @@
     renderAll();
   }
 
-  async function refreshState() {
+async function refreshState() {
     try {
-      const [bookingsRes, servicesRes, offersRes, clientsRes] = await Promise.all([
+      const [bookingsRes, servicesRes, offersRes, clientsRes, feedbacksRes] = await Promise.all([
         fetchWithAuth("/api/admin/bookings"),
         fetchWithAuth("/api/admin/services"),
         fetchWithAuth("/api/admin/offers"),
-        fetchWithAuth("/api/admin/clients")
+        fetchWithAuth("/api/admin/clients"),
+        fetchWithAuth("/api/admin/feedbacks")
       ]);
       state.bookings = await bookingsRes.json();
       state.services = await servicesRes.json();
       state.offers = await offersRes.json();
       state.clients = await clientsRes.json();
+      state.feedbacks = await feedbacksRes.json();
     } catch (error) {
       console.error("Failed to load admin data:", error);
       openDialog({
@@ -143,6 +149,55 @@
     renderActiveOffers();
     renderAnalytics();
     renderReports();
+    renderFeedbacks();
+  }
+
+  function renderFeedbacks() {
+    const container = document.getElementById("feedbackList");
+    if (!container || !state.feedbacks) return;
+    
+    if (!state.feedbacks.length) {
+      container.innerHTML = `<div class="panel empty-state">No feedback yet.</div>`;
+      return;
+    }
+    
+    container.innerHTML = state.feedbacks.map(fb => `
+      <article class="feedback-card">
+        <div class="feedback-header">
+          <div>
+            <strong>${escapeHtml(fb.user || "Guest")}</strong>
+            <span class="rating">${'★'.repeat(Number(fb.rating) || 0)}${'☆'.repeat(Math.max(0, 5 - (Number(fb.rating) || 0)))}</span>
+            ${fb.service ? `<span class="service-tag">${escapeHtml(fb.service)}</span>` : ''}
+            ${fb.booking ? `<span class="booking-tag">Booking</span>` : ''}
+          </div>
+          <small>${fb.createdAt ? new Date(fb.createdAt).toLocaleDateString() : ''}</small>
+        </div>
+        <p>${escapeHtml(fb.comment)}</p>
+        ${fb.image ? `<img src="${escapeAttribute(fb.image)}" alt="Feedback image">` : ''}
+        <div class="card-actions" style="margin-top: 10px;">
+          <button class="action-btn danger" data-feedback-delete="${fb._id}">Delete</button>
+        </div>
+      </article>
+    `).join("");
+
+    container.querySelectorAll("[data-feedback-delete]").forEach((button) => {
+      button.addEventListener("click", () => deleteFeedback(button.dataset.feedbackDelete));
+    });
+  }
+
+  function deleteFeedback(id) {
+    openDialog({
+      eyebrow: "Delete Feedback",
+      title: "Remove this feedback?",
+      message: "Are you sure you want to delete this feedback?",
+      confirmLabel: "Delete",
+      confirmVariant: "danger",
+      onConfirm: async () => {
+        await fetchWithAuth(`/api/admin/feedbacks/${id}`, { method: "DELETE" });
+        await refreshState();
+        renderAll();
+      }
+    });
   }
 
   function renderStats() {
@@ -188,9 +243,13 @@
         <td>${statusBadge(booking.status)}</td>
         <td>
           <div class="table-actions">
-            <button class="action-btn" data-action="confirm" data-id="${booking._id}" ${booking.status === "confirmed" ? "disabled" : ""}>Confirm</button>
+            <button class="action-btn" data-action="edit" data-id="${booking._id}">Edit</button>
+            <button class="action-btn" data-action="confirm" data-id="${booking._id}" ${(booking.status === "confirmed" || booking.status === "completed") ? "disabled" : ""}>Confirm</button>
             <button class="action-btn" data-action="complete" data-id="${booking._id}" ${booking.status === "completed" ? "disabled" : ""}>Complete</button>
-            <button class="action-btn danger" data-action="delete" data-id="${booking._id}">Delete</button>
+            ${booking.status === "cancelled" 
+              ? `<button class="action-btn danger" data-action="delete" data-id="${booking._id}">Delete</button>`
+              : `<button class="action-btn danger" data-action="reject" data-id="${booking._id}" ${(booking.status === "confirmed" || booking.status === "completed") ? "disabled" : ""}>Reject</button>`
+            }
           </div>
         </td>
       </tr>
@@ -200,18 +259,85 @@
     });
   }
 
+  async function saveBooking(event) {
+    event.preventDefault();
+    const id = document.getElementById("bookingId").value;
+    const payload = {
+      name: document.getElementById("bookingName").value.trim(),
+      service: document.getElementById("bookingService").value.trim(),
+      date: document.getElementById("bookingDate").value,
+      time: document.getElementById("bookingTime").value,
+      vehicleType: document.getElementById("bookingVehicleType").value.trim(),
+      vehicleModel: document.getElementById("bookingVehicleModel").value.trim(),
+      plateNumber: document.getElementById("bookingPlateNumber").value.trim(),
+      email: document.getElementById("bookingEmail").value.trim(),
+      price: Number(document.getElementById("bookingPrice").value),
+      status: document.getElementById("bookingStatus").value,
+    };
+    await fetchWithAuth(id ? `/api/admin/bookings/${id}` : "/api/admin/bookings", {
+      method: id ? "PUT" : "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+    closeModal("#bookingModal");
+    await refreshState();
+    renderAll();
+  }
+
+  function openBookingModal(booking) {
+    document.getElementById("bookingModalTitle").textContent = booking ? "Edit Booking" : "Add Booking";
+    document.getElementById("bookingId").value = booking?._id || "";
+    document.getElementById("bookingName").value = booking?.name || "";
+    document.getElementById("bookingService").value = booking?.service || "";
+    document.getElementById("bookingDate").value = booking?.date || "";
+    document.getElementById("bookingTime").value = booking?.time || "";
+    document.getElementById("bookingVehicleType").value = booking?.vehicleType || "";
+    document.getElementById("bookingVehicleModel").value = booking?.vehicleModel || "";
+    document.getElementById("bookingPlateNumber").value = booking?.plateNumber || "";
+    document.getElementById("bookingEmail").value = booking?.email || "";
+    document.getElementById("bookingPrice").value = booking?.price || "";
+    document.getElementById("bookingStatus").value = booking?.status || "pending";
+    openModal("#bookingModal");
+  }
+
   async function handleBookingAction(action, id) {
     const booking = state.bookings.find((entry) => entry._id === id);
     if (!booking) return;
+
+    if (action === "edit") {
+      openBookingModal(booking);
+      return;
+    }
+
     if (action === "delete") {
       openDialog({
         eyebrow: "Delete Booking",
-        title: "Remove this booking?",
-        message: `This will permanently remove ${booking.name}'s booking for ${booking.service}.`,
+        title: "Delete this booking?",
+        message: `Permanently delete ${booking.name}'s cancelled booking from the system?`,
         confirmLabel: "Delete",
         confirmVariant: "danger",
         onConfirm: async () => {
           await fetchWithAuth(`/api/admin/bookings/${id}`, { method: "DELETE" });
+          await refreshState();
+          renderAll();
+        }
+      });
+      return;
+    }
+
+    if (action === "reject") {
+      openDialog({
+        eyebrow: "Reject Booking",
+        title: "Reject this booking?",
+        message: `Set ${booking.name}'s booking for ${booking.service} to cancelled.`,
+        confirmLabel: "Reject",
+        confirmVariant: "danger",
+        onConfirm: async () => {
+          await fetchWithAuth(`/api/admin/bookings/${id}`, { 
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ status: "cancelled" })
+          });
           await refreshState();
           renderAll();
         }
@@ -228,7 +354,7 @@
     renderAll();
   }
 
-  function renderServices() {
+function renderServices() {
     const container = document.getElementById("services-list");
     if (!container) return;
     if (!state.services.length) {
@@ -237,29 +363,34 @@
     }
     container.innerHTML = state.services.map((service) => `
       <article class="service-card">
-        <img src="${escapeAttribute(service.image || "/client/image/logo.png")}" alt="${escapeAttribute(service.name)}">
+        <img src="${service.image || escapeAttribute("/client/image/logo.png")}" alt="${escapeAttribute(service.name)}">
         <div class="service-body">
           <div>
             <h3>${escapeHtml(service.name)}</h3>
-            <p class="service-meta">${escapeHtml(service.description || "No description available.")}</p>
+            <p class="service-meta">${escapeHtml(service.description)}</p>
           </div>
           <div class="meta-row"><strong>${formatCurrency(service.price)}</strong></div>
           <div class="card-actions">
-            <button class="action-btn" data-service-view="${service._id}">View</button>
-            <button class="action-btn" data-service-edit="${service._id}">Edit</button>
-            <button class="action-btn danger" data-service-delete="${service._id}">Delete</button>
+            <button class="action-btn" data-service="${service._id}">View</button>
+            <button class="action-btn" data-service="${service._id}">Edit</button>
+            <button class="action-btn danger" data-service="${service._id}">Delete</button>
           </div>
         </div>
       </article>
     `).join("");
-    container.querySelectorAll("[data-service-view]").forEach((button) => {
-      button.addEventListener("click", () => viewService(button.dataset.serviceView));
-    });
-    container.querySelectorAll("[data-service-edit]").forEach((button) => {
-      button.addEventListener("click", () => openServiceModal(state.services.find((service) => service._id === button.dataset.serviceEdit)));
-    });
-    container.querySelectorAll("[data-service-delete]").forEach((button) => {
-      button.addEventListener("click", () => deleteService(button.dataset.serviceDelete));
+
+    // Service button event listeners
+    container.querySelectorAll("[data-service]").forEach((button) => {
+      button.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const serviceId = button.dataset.service;
+        const service = state.services.find(s => s._id === serviceId);
+        if (!service) return;
+        
+        if (button.textContent.includes("View")) viewService(serviceId);
+        if (button.textContent.includes("Edit")) openServiceModal(service);
+        if (button.textContent.includes("Delete")) deleteService(serviceId);
+      });
     });
   }
 
@@ -274,18 +405,27 @@
     `).join("") : `<p class="empty-state">No services available for the client website.</p>`;
   }
 
-  async function saveService(event) {
+async function saveService(event) {
     event.preventDefault();
     const id = document.getElementById("serviceId").value;
-    const payload = {
-      name: document.getElementById("serviceName").value.trim(),
-      price: Number(document.getElementById("servicePrice").value),
-      description: document.getElementById("serviceDescription").value.trim()
-    };
+    const formData = new FormData();
+    formData.append('name', document.getElementById("serviceName").value.trim());
+    formData.append('price', Number(document.getElementById("servicePrice").value));
+    formData.append('description', document.getElementById("serviceDescription").value.trim());
+    formData.append('fullDescription', document.getElementById("serviceFullDescription").value.trim());
+    const duration = document.getElementById("serviceDuration").value;
+    if (duration) formData.append('duration', Number(duration));
+    const bullets = document.getElementById("serviceBulletPoints").value.trim();
+    if (bullets) formData.append('bulletPoints', bullets.split('\n').map(b => b.trim()).filter(b => b));
+    
+    const imageInput = document.getElementById("serviceImage");
+    if (imageInput.files && imageInput.files[0]) {
+      formData.append('image', imageInput.files[0]);
+    }
+    
     await fetchWithAuth(id ? `/api/admin/services/${id}` : "/api/admin/services", {
       method: id ? "PUT" : "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload)
+      body: formData
     });
     closeModal("#serviceModal");
     await refreshState();
@@ -298,6 +438,17 @@
     document.getElementById("serviceName").value = service?.name || "";
     document.getElementById("servicePrice").value = service?.price || "";
     document.getElementById("serviceDescription").value = service?.description || "";
+    
+    // Image preview
+    const preview = document.getElementById("serviceImagePreview");
+    const previewImg = document.getElementById("serviceImagePreviewImg");
+    if (service?.image) {
+      previewImg.src = service.image;
+      preview.style.display = "block";
+    } else {
+      preview.style.display = "none";
+    }
+    
     openModal("#serviceModal");
   }
 
@@ -305,11 +456,26 @@
     const service = state.services.find((entry) => entry._id === id);
     if (!service) return;
     setText("viewModalTitle", service.name);
+    
+    const bulletList = service.bulletPoints && service.bulletPoints.length ? 
+      `<ul class="service-bullets">${service.bulletPoints.map(b => `<li>${escapeHtml(b)}</li>`).join('')}</ul>` : '';
+    
     document.getElementById("viewModalBody").innerHTML = `
-      <img src="${escapeAttribute(service.image || "/client/image/logo.png")}" alt="${escapeAttribute(service.name)}">
-      <p>${escapeHtml(service.fullDescription || service.description || "Professional car wash service.")}</p>
+      <div class="service-preview">
+        <img src="${escapeAttribute(service.image || "/client/image/logo.png")}" alt="${escapeAttribute(service.name)}">
+        <div style="line-height:1.6;">
+          <p>${escapeHtml(service.fullDescription || service.description || "Professional car wash service.")}</p>
+          ${bulletList}
+        </div>
+      </div>
     `;
-    document.getElementById("viewModalMeta").textContent = `Price: ${formatCurrency(service.price)}`;
+    
+    document.getElementById("viewModalMeta").innerHTML = `
+      <div class="meta-row" style="justify-content:center;gap:24px;align-items:center;">
+        <span style="font-weight:800;font-size:1.3rem;color:var(--accent);">${formatCurrency(service.price)}</span>
+        <span><strong>${service.duration || 45} mins</strong></span>
+      </div>
+    `;
     openModal("#viewServiceModal");
   }
 
@@ -539,7 +705,7 @@
     return entries.reduce((best, current) => current[1] > best[1] ? current : best)[0];
   }
   function formatCurrency(value) {
-    return `PHP ${Number(value || 0).toLocaleString("en-PH", { maximumFractionDigits: 0 })}`;
+    return `PHP ${Number(value || 0).toLocaleString("en-ph", { maximumFractionDigits: 0 })}`;
   }
   function statusBadge(status) {
     const normalized = (status || "pending").toLowerCase();

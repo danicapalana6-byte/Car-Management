@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Services - CarWash Pro Admin</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="admin-shell">
+  <div class="admin-layout">
+    <aside class="sidebar">
+      <div class="brand-block">
+        <p class="eyebrow">Operations Portal</p>
+        <h1>CarWash Pro</h1>
+        <p class="sidebar-copy">Admin control center for bookings, services, offers, and performance tracking.</p>
+      </div>
+      <nav class="sidebar-nav">
+        <button id="btnDashboard" class="nav-btn" data-page="dashboard">Dashboard</button>
+        <button id="btnBookings" class="nav-btn" data-page="bookings">Bookings</button>
+        <button id="btnServices" class="nav-btn active" data-page="services-section">Services</button>
+        <button id="btnFeedbacks" class="nav-btn" data-page="feedbacks">Feedbacks</button>
+        <button id="btnOffers" class="nav-btn" data-page="offers">Offers</button>
+        <button id="btnAnalytics" class="nav-btn" data-page="analytics">Analytics</button>
+        <button id="btnReports" class="nav-btn" data-page="reports">Reports</button>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="status-chip"><span class="status-dot"></span>Admin session active</div>
+        <button id="btnLogout" class="logout-btn">Logout</button>
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">Service Catalog</p>
+          <h2 id="pageTitle">Services</h2>
+        </div>
+        <button id="refreshBtn" class="secondary-btn">Refresh</button>
+      </header>
+
+      <section id="services-section" class="page-section">
+        <div class="section-header">
+          <div>
+            <p class="eyebrow">Catalog Management</p>
+            <h3>Published Services</h3>
+          </div>
+          <button id="addServiceBtn" class="primary-btn">Add Service</button>
+        </div>
+        <div id="services-list" class="stats-grid service-grid"></div>
+      </section>
+
+      <!-- Service Modal -->
+      <div id="serviceModal" class="modal-backdrop hidden">
+        <div class="modal-card">
+          <div class="modal-header">
+            <div><p class="eyebrow">Service</p><h3 id="modalTitle">Add Service</h3></div>
+            <button type="button" class="icon-btn close-modal" data-close="#serviceModal">×</button>
+          </div>
+          <form id="serviceForm" class="form-grid">
+            <input type="hidden" id="serviceId">
+            <label><span>Name</span><input type="text" id="serviceName" required></label>
+            <label><span>Price (PHP)</span><input type="number" id="servicePrice" min="0" step="0.01" required></label>
+            <label class="full-span"><span>Short Description</span><textarea id="serviceDescription" rows="2" required></textarea></label>
+            <label class="full-span"><span>Full Description</span><textarea id="serviceFullDescription" rows="4"></textarea></label>
+            <label><span>Duration (minutes)</span><input type="number" id="serviceDuration" min="15" max="300" value="45"></label>
+            <label class="full-span"><span>Bullet Points (one per line)</span><textarea id="serviceBulletPoints" rows="4" placeholder="Feature 1&#10;Feature 2..."></textarea></label>
+            <label class="full-span file-upload">
+              <span>Service Image</span>
+              <input type="file" id="serviceImage" accept="image/*">
+              <div id="serviceImagePreview" style="display:none;margin-top:8px;">
+                <img id="serviceImagePreviewImg" style="max-width:200px;max-height:120px;border-radius:12px;">
+                <button type="button" class="action-btn danger remove-image" style="margin-top:4px;">Remove</button>
+              </div>
+            </label>
+            <div class="modal-actions full-span">
+              <button type="button" class="secondary-btn close-modal" data-close="#serviceModal">Cancel</button>
+              <button type="submit" class="primary-btn">Save Service</button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- Service View Modal (fixed messy styling target) -->
+      <div id="viewServiceModal" class="modal-backdrop hidden">
+        <div class="modal-card">
+          <div class="modal-header">
+            <div><p class="eyebrow">Service Preview</p><h3 id="viewModalTitle">Service Details</h3></div>
+            <button type="button" class="icon-btn close-modal" data-close="#viewServiceModal">×</button>
+          </div>
+          <div id="viewModalBody"></div>
+          <div id="viewModalMeta"></div>
+          <div class="modal-actions">
+            <button type="button" class="secondary-btn close-modal" data-close="#viewServiceModal">Close</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Dialog Modal -->
+      <div id="dialogModal" class="modal-backdrop hidden">
+        <div class="modal-card compact-modal">
+          <div class="modal-header">
+            <div><p class="eyebrow" id="dialogEyebrow">Confirm</p><h3 id="dialogTitle">Action</h3></div>
+          </div>
+          <p id="dialogMessage" class="dialog-copy"></p>
+          <div class="modal-actions">
+            <button type="button" id="dialogCancel" class="secondary-btn">Cancel</button>
+            <button type="button" id="dialogConfirm" class="primary-btn">Confirm</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Booking Modal (for completeness) -->
+      <div id="bookingModal" class="modal-backdrop hidden">
+        <div class="modal-card">
+          <div class="modal-header">
+            <div><p class="eyebrow">Booking</p><h3 id="bookingModalTitle">Add Booking</h3></div>
+            <button type="button" class="icon-btn close-modal" data-close="#bookingModal">×</button>
+          </div>
+          <form id="bookingForm" class="form-grid">
+            <!-- Form fields as in dashboard -->
+            <input type="hidden" id="bookingId">
+            <label><span>Client Name</span><input type="text" id="bookingName" required></label>
+            <!-- ... other fields ... -->
+            <div class="modal-actions full-span">
+              <button type="button" class="secondary-btn close-modal" data-close="#bookingModal">Cancel</button>
+              <button type="submit" class="primary-btn">Save</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="admin.js"></script>
+</body>
+</html>
