@@ -806,8 +806,11 @@ function renderBookings(list) {
             list.forEach(b => {
                 const tr = document.createElement("tr");
 let actionsHtml = '';
-                if (b.status === "pending") {
-                    actionsHtml = '<button data-id="' + b._id + '" class="editBtn btn-primary small">Edit</button> <button data-id="' + b._id + '" class="cancelBtn btn-danger">Cancel</button>';
+                const status = (b.status || 'pending').toLowerCase();
+                if (status === "pending") {
+                    actionsHtml = `<button data-id="${b._id}" class="editBtn btn-primary small">Edit</button> <button data-id="${b._id}" class="cancelBtn btn-danger small">Cancel</button>`;
+                } else {
+                    actionsHtml = `<button data-id="${b._id}" class="deleteBtn btn-danger small">Delete</button>`;
                 }
                 
                 tr.innerHTML = `
@@ -816,7 +819,7 @@ let actionsHtml = '';
                     <td>${escapeHtml(b.plateNumber || '-')}</td>
                     <td>${formatReadableDate(b.date)}</td>
                     <td>${escapeHtml(formatTime12(b.time))}</td>
-                    <td>${escapeHtml(b.status)}</td>
+                    <td><span class="status-badge status-${status}">${escapeHtml(status)}</span></td>
                     <td title="${escapeHtml(b.notes || b.location || 'No notes')}">${escapeHtml((b.notes || '').substring(0,30) + (b.notes && b.notes.length > 30 ? '...' : '') || (b.location ? '📍 Loc' : '-'))}</td>
                     <td>${actionsHtml}</td>
                 `;
@@ -830,39 +833,18 @@ let actionsHtml = '';
             });
 
             // Cancel buttons
-            document.querySelectorAll(".cancelBtn").forEach(btn => {
+            // Universal delete handler (Cancel/Delete)
+            document.querySelectorAll(".cancelBtn, .deleteBtn").forEach(btn => {
                 btn.onclick = async (e) => {
                     e.stopPropagation();
                     const bookingId = btn.dataset.id;
-                    
-                    // Cancel booking directly - no confirmation popup needed
-                    const identityQuery = buildIdentityQuery();
-                    if (!identityQuery) {
-                        alert("Please login first");
-                        return;
-                    }
-                    
-                    try {
-                        const response = await fetch(`/api/book/${bookingId}?${identityQuery}`, {
-                            method: 'DELETE'
-                        });
-                        const result = await response.json();
-                        
-                        if (response.ok) {
-                            console.log("Booking cancelled:", result.message);
-                            loadBookings(); // Refresh from server
-                        } else {
-                            alert("Cancel failed: " + (result.message || "Unknown error"));
-                        }
-                    } catch (error) {
-                        console.error("Delete error:", error);
-                        alert("Network error. Please try again.");
-                        // Fallback to LS delete
-                        let list = lsGet(LS_BOOK, []);
-                        list = list.filter(x => x._id !== bookingId);
-                        lsSet(LS_BOOK, list);
-                        loadBookings();
-                    }
+                    const status = list.find(b => b._id === bookingId)?.status?.toLowerCase() || 'unknown';
+                    const isCancel = btn.classList.contains('cancelBtn');
+                    const msg = isCancel ? 'Cancel this pending booking?' : `Delete this ${status} booking?`;
+                    showDeleteBookingPopup(msg, async () => {
+                        const identityQuery = buildIdentityQuery();
+                        await deleteBooking(bookingId, identityQuery);
+                    });
                 };
             });
 
@@ -1075,13 +1057,37 @@ function cancelEdit() {
         });
     }
 
+async function deleteBooking(bookingId, identityQuery) {
+    try {
+        const response = await fetch(`/api/book/${bookingId}?${identityQuery}`, {
+            method: 'DELETE'
+        });
+        const result = await response.json();
+        
+        if (response.ok) {
+            console.log("Booking deleted:", result.message);
+            loadBookings();
+        } else {
+            alert("Delete failed: " + (result.message || "Unknown error"));
+        }
+    } catch (error) {
+        console.error("Delete error:", error);
+        alert("Network error. Please try again.");
+        // Fallback LS delete
+        let list = lsGet(LS_BOOK, []);
+        list = list.filter(x => x._id !== bookingId);
+        lsSet(LS_BOOK, list);
+        loadBookings();
+    }
+}
+
 function showDeleteBookingPopup(message, onConfirm) {
     createPopupOverlay({
-        title: "Confirm Cancellation",
+        title: "Confirm Delete",
         message,
         tone: "danger",
-        confirmText: "Yes, Cancel",
-        cancelText: "No",
+        confirmText: "Yes, Delete",
+        cancelText: "Keep",
         onConfirm
     });
 }
