@@ -1005,10 +1005,14 @@ tr:hover{
   }
   
   .header {
-    padding: 13px 14px;
+    padding: 12px 14px;
     gap: 8px;
     flex-wrap:nowrap;
     align-items:center;
+  }
+
+  .header-main h2 {
+    font-size: clamp(1rem, 4vw, 1.3rem);
   }
   
   .header h2 {
@@ -1033,7 +1037,7 @@ tr:hover{
   
   .stats {
     grid-template-columns: 1fr;
-    gap: 12px;
+    gap: 10px;
   }
   
   .stats p {
@@ -1052,15 +1056,21 @@ tr:hover{
   
   /* Forms - extra spacing */
   .panel {
-    padding: 16px;
+    padding: 12px 16px;
   }
 
   .card{
-    padding:16px;
+    padding:12px 16px;
   }
   
-  input, select, textarea, button {
+  input, select, textarea {
     padding: 14px;
+  }
+  
+  button, #bookBtn, #resetBtn {
+    padding: 12px 18px !important;
+    font-size: 14px !important;
+    min-height: 42px !important;
   }
   
   /* Profile grid stacks */
@@ -1072,6 +1082,10 @@ tr:hover{
   /* Services single column */
   #servicesOverview {
     grid-template-columns: 1fr !important;
+  }
+
+  #servicesOverview .service-card div:first-child {
+    height: 100px !important;
   }
 
   .location-layout {
@@ -1107,10 +1121,20 @@ tr:hover{
     width:100%;
   }
 
-  #pricePreview{
+#pricePreview{
     width:100%;
     margin-left:0 !important;
     text-align:center;
+    padding:12px 18px !important;
+    font-size: 14px !important;
+    font-weight: 600 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    min-height: 42px !important;
+    border-radius: 12px !important;
+    background: #f3faf3 !important;
+    border: 1px solid var(--green-100) !important;
   }
 
   .modal-card,

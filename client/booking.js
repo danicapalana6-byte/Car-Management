@@ -546,6 +546,18 @@ loadProfileView();
             nextActiveBtn.classList.add("active");
             currentActiveBtn = nextActiveBtn;
         }
+
+        // Mobile-only: Auto-close navbar after nav click
+        if (window.innerWidth <= 900) {
+          const hamburger = document.getElementById('hamburger');
+          const sidebar = document.querySelector('.sidebar');
+          const overlay = document.querySelector('.sidebar-overlay');
+          if (hamburger) hamburger.classList.remove('active');
+          if (sidebar) {
+            sidebar.classList.remove('mobile-sidebar', 'active');
+          }
+          if (overlay) overlay.classList.remove('active');
+        }
     }
     window.showPage = showPage;
 
