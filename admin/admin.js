@@ -150,6 +150,36 @@ async function refreshState() {
     renderAnalytics();
     renderReports();
     renderFeedbacks();
+    loadServices();
+  }
+
+  function loadServices() {
+    const tbody = document.querySelector("#services-overview tbody");
+    if (!tbody) return;
+
+    fetchWithAuth("/api/admin/services")
+      .then((response) => response.json())
+      .then((services) => {
+        if (services.length > 0) {
+          tbody.innerHTML = "";
+          services.forEach((service) => {
+            const row = document.createElement("tr");
+            row.innerHTML = `
+                <td><strong>${escapeHtml(service.name)}</strong></td>
+                <td><span style="color: var(--accent, #1b7a44); font-weight: 600;">${formatCurrency(service.price)}</span></td>
+                <td>${escapeHtml(String(service.duration || 0))} mins</td>
+                <td style="color: #666; font-size: 0.9em;">${escapeHtml(service.description || "-")}</td>
+            `;
+            tbody.appendChild(row);
+          });
+        } else {
+            tbody.innerHTML = `<tr><td colspan="4" class="empty-state">No services published yet.</td></tr>`;
+        }
+      })
+      .catch((error) => {
+        console.error("Error loading services:", error);
+          tbody.innerHTML = `<tr><td colspan="4" class="empty-state">Error loading services</td></tr>`;
+      });
   }
 
   function renderFeedbacks() {
@@ -206,11 +236,12 @@ async function refreshState() {
     const totalRevenue = state.bookings
       .filter((b) => b.status === "confirmed" || b.status === "completed")
       .reduce((sum, b) => sum + Number(b.price || 0), 0);
+    const uniqueClients = new Set(state.bookings.map(b => b.email));
     setText("carsToday", confirmedToday);
     setText("revenueToday", formatCurrency(totalRevenue));
     setText("bookingCount", state.bookings.length);
     setText("offerCount", state.offers.length);
-    setText("clientCount", state.clients.length);
+    setText("clientCount", uniqueClients.size);
     setText("serviceCount", state.services.length);
   }
 
@@ -243,12 +274,12 @@ async function refreshState() {
         <td>${statusBadge(booking.status)}</td>
         <td>
           <div class="table-actions">
-            <button class="action-btn" data-action="edit" data-id="${booking._id}">Edit</button>
+            <button class="action-btn" data-action="edit" data-id="${booking._id}">Manage</button>
             <button class="action-btn" data-action="confirm" data-id="${booking._id}" ${(booking.status === "confirmed" || booking.status === "completed") ? "disabled" : ""}>Confirm</button>
             <button class="action-btn" data-action="complete" data-id="${booking._id}" ${booking.status === "completed" ? "disabled" : ""}>Complete</button>
-            ${booking.status === "cancelled" 
+            ${(booking.status || "pending").toLowerCase() !== "pending" 
               ? `<button class="action-btn danger" data-action="delete" data-id="${booking._id}">Delete</button>`
-              : `<button class="action-btn danger" data-action="reject" data-id="${booking._id}" ${(booking.status === "confirmed" || booking.status === "completed") ? "disabled" : ""}>Reject</button>`
+              : `<button class="action-btn danger" data-action="reject" data-id="${booking._id}">Reject</button>`
             }
           </div>
         </td>
@@ -272,7 +303,6 @@ async function refreshState() {
       plateNumber: document.getElementById("bookingPlateNumber").value.trim(),
       email: document.getElementById("bookingEmail").value.trim(),
       price: Number(document.getElementById("bookingPrice").value),
-      status: document.getElementById("bookingStatus").value,
     };
     await fetchWithAuth(id ? `/api/admin/bookings/${id}` : "/api/admin/bookings", {
       method: id ? "PUT" : "POST",
@@ -285,7 +315,7 @@ async function refreshState() {
   }
 
   function openBookingModal(booking) {
-    document.getElementById("bookingModalTitle").textContent = booking ? "Edit Booking" : "Add Booking";
+    document.getElementById("bookingModalTitle").textContent = booking ? "Manage Booking" : "Add Booking";
     document.getElementById("bookingId").value = booking?._id || "";
     document.getElementById("bookingName").value = booking?.name || "";
     document.getElementById("bookingService").value = booking?.service || "";
@@ -296,7 +326,6 @@ async function refreshState() {
     document.getElementById("bookingPlateNumber").value = booking?.plateNumber || "";
     document.getElementById("bookingEmail").value = booking?.email || "";
     document.getElementById("bookingPrice").value = booking?.price || "";
-    document.getElementById("bookingStatus").value = booking?.status || "pending";
     openModal("#bookingModal");
   }
 
@@ -313,7 +342,7 @@ async function refreshState() {
       openDialog({
         eyebrow: "Delete Booking",
         title: "Delete this booking?",
-        message: `Permanently delete ${booking.name}'s cancelled booking from the system?`,
+        message: `Permanently delete ${booking.name}'s booking from the system?`,
         confirmLabel: "Delete",
         confirmVariant: "danger",
         onConfirm: async () => {
@@ -329,7 +358,7 @@ async function refreshState() {
       openDialog({
         eyebrow: "Reject Booking",
         title: "Reject this booking?",
-        message: `Set ${booking.name}'s booking for ${booking.service} to cancelled.`,
+        message: `Set ${booking.name}'s booking for ${booking.service} to cancelled?`,
         confirmLabel: "Reject",
         confirmVariant: "danger",
         onConfirm: async () => {
@@ -344,6 +373,7 @@ async function refreshState() {
       });
       return;
     }
+
     const nextStatus = action === "confirm" ? "confirmed" : "completed";
     await fetchWithAuth(`/api/admin/bookings/${id}`, {
       method: "PUT",
@@ -415,8 +445,6 @@ async function saveService(event) {
     formData.append('fullDescription', document.getElementById("serviceFullDescription").value.trim());
     const duration = document.getElementById("serviceDuration").value;
     if (duration) formData.append('duration', Number(duration));
-    const bullets = document.getElementById("serviceBulletPoints").value.trim();
-    if (bullets) formData.append('bulletPoints', bullets.split('\n').map(b => b.trim()).filter(b => b));
     
     const imageInput = document.getElementById("serviceImage");
     if (imageInput.files && imageInput.files[0]) {
@@ -438,6 +466,8 @@ async function saveService(event) {
     document.getElementById("serviceName").value = service?.name || "";
     document.getElementById("servicePrice").value = service?.price || "";
     document.getElementById("serviceDescription").value = service?.description || "";
+    document.getElementById("serviceFullDescription").value = service?.fullDescription || "";
+    document.getElementById("serviceDuration").value = service?.duration || "";
     
     // Image preview
     const preview = document.getElementById("serviceImagePreview");

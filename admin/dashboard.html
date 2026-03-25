@@ -39,7 +39,6 @@
           <p class="eyebrow">Admin Workspace</p>
           <h2 id="pageTitle">Dashboard</h2>
         </div>
-        <button id="refreshBtn" class="secondary-btn">Refresh Data</button>
       </header>
 
       <section id="dashboard" class="page-section">
@@ -92,7 +91,20 @@
               <p class="eyebrow">Website Support</p>
               <h3>Published Services</h3>
             </div>
-            <div id="servicesOverview" class="service-overview"></div>
+            <div class="table-wrap">
+            <table id="services-overview" class="table">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Price</th>
+                  <th>Duration</th>
+                  <th>Description</th>
+                </tr>
+              </thead>
+              <tbody>
+              </tbody>
+            </table>
+            </div>
             <div class="divider"></div>
             <div>
               <p class="eyebrow">Promotions</p>
@@ -275,7 +287,7 @@
         <label><span>Price</span><input type="number" id="servicePrice" min="0" required></label>
         <label class="full-span"><span>Description</span><textarea id="serviceDescription" rows="2" required></textarea></label>
         <label><span>Full Description</span><textarea id="serviceFullDescription" rows="3"></textarea></label>
-        <label><span>Duration (minutes)</span><input type="number" id="serviceDuration" min="15" max="300"></label>
+        <label><span>Duration (minutes)</span><input type="number" id="serviceDuration"></label>
         <label class="full-span"><span>Bullet Points (one per line)</span><textarea id="serviceBulletPoints" rows="3" placeholder="Reliable cleaning...
 A good choice..."></textarea></label>
         <label class="file-upload">

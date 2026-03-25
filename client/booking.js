@@ -125,9 +125,11 @@ async function loadServicesDynamic() {
     console.error("Error loading services:", error);
   } finally {
     if (document.readyState !== "loading") {
-      loadServices();
-      if (typeof loadBookings === "function") {
-        loadBookings();
+      if (typeof window.loadServices === "function") {
+        window.loadServices();
+      }
+      if (typeof window.loadBookings === "function") {
+        window.loadBookings();
       }
     }
   }
@@ -547,13 +549,12 @@ loadProfileView();
     }
     window.showPage = showPage;
 
-    if (logoutBtn) {
-        logoutBtn.addEventListener("click", () => {
-            localStorage.clear();
-window.location.href = "/client/login.html";
-        });
-    }
-
+        if (logoutBtn) {
+            logoutBtn.addEventListener("click", () => {
+                localStorage.clear();
+                window.location.replace("/client/login.html");
+            });
+        }
 function closeModal() {
         if (modal) {
             modal.classList.remove("show");
@@ -707,6 +708,7 @@ function loadServices() {
     
     console.log('🎉 loadServices() complete!');
 }
+window.loadServices = loadServices;
 
 let editingBookingId = null;
 let originalBookBtnHandler = null;
@@ -778,6 +780,7 @@ async function loadBookings() {
         renderBookings(lsGet(LS_BOOK, []));
     }
 }
+window.loadBookings = loadBookings;
 function renderBookings(list) {
     // Filter to upcoming (future dates) + limit 10 most recent
     const today = new Date();
@@ -1626,4 +1629,5 @@ async function loadOffers() {
     
     // Refresh bookings periodically
     setInterval(loadBookings, 30000); // Changed to 30 seconds
+    setInterval(loadServicesDynamic, 30000);
 });

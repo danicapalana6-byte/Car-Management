@@ -58,6 +58,10 @@ button { border: 0; cursor: pointer; }
   flex-direction: column;
   background: linear-gradient(180deg, rgba(16, 47, 33, 0.97), rgba(25, 68, 48, 0.95));
   color: #edf7f0;
+  position: sticky;
+  top: 20px;
+  height: calc(100vh - 40px);
+  overflow-y: auto;
 }
 .brand-block h1 { margin: 0 0 10px; font-size: 2rem; line-height: 1; }
 .sidebar-copy {
@@ -116,14 +120,21 @@ button { border: 0; cursor: pointer; }
   box-shadow: 0 14px 28px rgba(27, 122, 68, 0.18);
 }
 .primary-btn:hover, .secondary-btn:hover, .icon-btn:hover, .logout-btn:hover { transform: translateY(-1px); }
-.main { min-width: 0; }
+.main { min-width: 0; overflow-y: auto; height: calc(100vh - 40px); }
 .topbar, .panel-heading, .section-header, .modal-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   gap: 16px;
 }
-.topbar { margin-bottom: 20px; }
+.topbar { 
+  margin-bottom: 20px;
+  position: sticky;
+  top: 0;
+  background: var(--bg);
+  z-index: 10;
+  padding: 10px 0;
+}
 .topbar h2, .section-header h3, .panel h3, .modal-card h3, .login-card h2, .login-hero h1 { margin: 0; }
 .page-section, .stack-panel { display: grid; gap: 20px; }
 .hero-panel {
@@ -315,7 +326,12 @@ button:disabled {
 
 @media (max-width: 1080px) {
   .admin-layout, .two-col { grid-template-columns: 1fr; }
-  .sidebar { min-height: auto; }
+  .sidebar { 
+    min-height: auto; 
+    height: auto;
+    position: relative;
+    top: 0;
+  }
 }
 
 @media (max-width: 720px) {
@@ -498,4 +514,5 @@ button:disabled {
     padding:24px 20px;
   }
 }
+
 

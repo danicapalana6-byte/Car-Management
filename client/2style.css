@@ -79,6 +79,8 @@ p, label, td, th, div, span{
   flex-direction:column;
   gap: clamp(0.75rem, 3vw, 1.125rem);
   min-width:0;
+  overflow-y: auto;
+  height: 100vh;
 }
 
 .main > section{
@@ -98,6 +100,10 @@ p, label, td, th, div, span{
   gap:14px;
   box-shadow:18px 0 40px rgba(16,47,19,0.14);
   transition: transform 0.3s ease;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
 }
 
 .sidebar h2{
@@ -208,6 +214,9 @@ p, label, td, th, div, span{
   border:1px solid rgba(215,232,216,0.9);
   box-shadow:var(--shadow-sm);
   backdrop-filter:blur(10px);
+  position: sticky;
+  top: 0;
+  z-index: 10;
 }
 
 .header-profile{
