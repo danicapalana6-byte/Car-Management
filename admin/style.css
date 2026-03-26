@@ -194,20 +194,27 @@ td strong { display: block; }
   font-size: 0.82rem;
   font-weight: 800;
   text-transform: capitalize;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 }
-.status-confirmed { background: #ddf5e5; color: #0f6d38; }
-.status-pending { background: #fff2d7; color: var(--warning); }
-.status-completed { background: #ddeeff; color: #1a5e8c; }
-.status-cancelled { background: #fde2df; color: var(--danger); }
+.status-confirmed { background: linear-gradient(135deg, var(--accent), var(--accent-strong)); color: white; }
+.status-pending { background: linear-gradient(135deg, var(--warning), #b45309); color: white; }
+.status-completed { background: linear-gradient(135deg, var(--accent), var(--accent-strong)); color: white; }
+.status-cancelled { background: linear-gradient(135deg, var(--danger), #7f1d1d); color: white; }
 .table-actions, .card-actions, .modal-actions { display: flex; flex-wrap: wrap; gap: 10px; }
 .action-btn {
   padding: 9px 12px;
   border-radius: 12px;
   font-weight: 800;
-  background: #eff4ee;
-  color: var(--ink);
+  color: white;
+  border: none;
+  transition: all 0.2s ease;
 }
-.action-btn.danger { background: #fde8e5; color: var(--danger); }
+.action-btn[data-action="confirm"] { background: linear-gradient(135deg, var(--accent), var(--accent-strong)); }
+.action-btn[data-action="complete"] { background: linear-gradient(135deg, #3b82f6, #1d4ed8); }
+.action-btn[data-action="reject"], .action-btn[data-action="delete"] { background: linear-gradient(135deg, var(--danger), #7f1d1d); }
+.action-btn[data-action="edit"] { background: linear-gradient(135deg, #3b82f6, #1d4ed8); color: white; }
+.action-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+.action-btn.danger { background: linear-gradient(135deg, var(--danger), #dc2626); }
 button:disabled {
   opacity: 0.55;
   cursor: not-allowed;
