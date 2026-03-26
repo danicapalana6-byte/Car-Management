@@ -324,6 +324,30 @@ button:disabled {
 }
 .dialog-copy { line-height: 1.7; }
 
+/* Clean inline actions */
+.table-actions {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 4px;
+  align-items: center;
+  min-height: 36px;
+}
+
+.table-actions .action-btn {
+  padding: 6px 10px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  border-radius: 8px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.table-actions .action-btn.danger {
+  background: #fde8e5;
+  color: var(--danger);
+  padding: 6px 12px;
+}
+
 @media (max-width: 1080px) {
   .admin-layout, .two-col { grid-template-columns: 1fr; }
   .sidebar { 

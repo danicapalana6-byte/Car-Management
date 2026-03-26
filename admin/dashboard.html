@@ -148,29 +148,37 @@
         <div class="modal-card">
           <div class="modal-header">
             <div><p class="eyebrow">Booking</p><h3 id="bookingModalTitle">Add Booking</h3></div>
-            <button type="button" class="icon-btn close-modal" data-close="#bookingModal">Close</button>
+            <button type="button" class="icon-btn close-modal" data-close="#bookingModal" style="margin-left: auto;">✕</button>
           </div>
           <form id="bookingForm" class="form-grid">
             <input type="hidden" id="bookingId">
             <label><span>Client Name</span><input type="text" id="bookingName" required></label>
-            <label><span>Service</span><input type="text" id="bookingService" required></label>
+            <label><span>Service</span>
+              <select id="bookingServiceSelect" required>
+                <option value="">Select Service...</option>
+              </select>
+            </label>
             <label><span>Date</span><input type="date" id="bookingDate" required></label>
             <label><span>Time</span><input type="time" id="bookingTime" required></label>
             <label><span>Vehicle Type</span><input type="text" id="bookingVehicleType"></label>
             <label><span>Vehicle Model</span><input type="text" id="bookingVehicleModel"></label>
             <label><span>Plate Number</span><input type="text" id="bookingPlateNumber"></label>
-            <label><span>Email</span><input type="email" id="bookingEmail"></label>
-            <label><span>Price</span><input type="number" id="bookingPrice" min="0" required></label>
-            <label><span>Status</span>
-              <select id="bookingStatus" required>
-                <option value="pending">Pending</option>
-                <option value="confirmed">Confirmed</option>
-                <option value="completed">Completed</option>
-                <option value="cancelled">Cancelled</option>
+            <label><span>Discount (%)</span>
+              <select id="bookingDiscount">
+                <option value="0">No discount (0%)</option>
+                <option value="5">5% off</option>
+                <option value="10">10% off</option>
+                <option value="15">15% off</option>
+                <option value="20">20% off</option>
+                <option value="25">25% off</option>
+                <option value="30">30% off</option>
               </select>
             </label>
+            <label class="full-span"><span>Final Price</span>
+              <input type="text" id="bookingComputedPrice" readonly style="background: #f8f9fa; font-weight: 600; font-size: 1.1em;">
+            </label>
+            <label><span>Email</span><input type="email" id="bookingEmail"></label>
             <div class="modal-actions full-span">
-              <button type="button" class="secondary-btn close-modal" data-close="#bookingModal">Cancel</button>
               <button type="submit" class="primary-btn">Save Booking</button>
             </div>
           </form>

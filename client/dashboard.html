@@ -125,7 +125,6 @@
   <option>Pickup Truck</option>
   <option>Van</option>
   <option>Hatchback</option>
-  <option>Motorcycle</option>
   <option value="other">Other</option>
 </select>
 
@@ -149,12 +148,17 @@
       <input id="email" type="email" placeholder="example@email.com">
 
       <label class="small" style="margin-top:12px; font-weight:bold;">Payment Method</label>
-      <select id="payment" disabled>
-        <option value="cash" selected>Cash Only</option>
-      </select>
+      <div id="payment" style="border:1px solid #ccc; padding:12px; background:#f8f9fa; border-radius:6px; font-weight:500; margin-top:4px;">
+        Cash
+      </div>
       <p class="small muted" style="margin-top:4px; color:red;">
         ⚠️ Please note: We currently accept **cash payments only** at our physical store.
       </p>
+
+
+
+
+
 
       <label class="small" style="margin-top:12px">Additional Notes</label>
       <textarea id="notes" rows="3" placeholder="Special instructions..."></textarea>

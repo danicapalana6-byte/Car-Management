@@ -263,7 +263,13 @@ async function refreshState() {
   function renderBookingsTable() {
     const tbody = document.getElementById("bookingListTbody");
     if (!tbody) return;
-    tbody.innerHTML = [...state.bookings].sort(sortByCreatedAtDesc).map((booking) => `
+    tbody.innerHTML = [...state.bookings].sort(sortByCreatedAtDesc).map((booking) => {
+      const statusLower = (booking.status || "pending").toLowerCase();
+      const isPending = statusLower === "pending";
+      const showConfirm = !(booking.status === "confirmed" || booking.status === "completed");
+      const showComplete = booking.status !== "completed";
+      
+      return `
       <tr>
         <td><strong>${escapeHtml(booking.name)}</strong></td>
         <td>${escapeHtml(booking.service)}</td>
@@ -274,22 +280,24 @@ async function refreshState() {
         <td>${statusBadge(booking.status)}</td>
         <td>
           <div class="table-actions">
-            <button class="action-btn" data-action="edit" data-id="${booking._id}">Manage</button>
-            <button class="action-btn" data-action="confirm" data-id="${booking._id}" ${(booking.status === "confirmed" || booking.status === "completed") ? "disabled" : ""}>Confirm</button>
-            <button class="action-btn" data-action="complete" data-id="${booking._id}" ${booking.status === "completed" ? "disabled" : ""}>Complete</button>
-            ${(booking.status || "pending").toLowerCase() !== "pending" 
-              ? `<button class="action-btn danger" data-action="delete" data-id="${booking._id}">Delete</button>`
-              : `<button class="action-btn danger" data-action="reject" data-id="${booking._id}">Reject</button>`
+            <button class="action-btn" data-action="confirm" data-id="${booking._id}" ${!showConfirm ? 'disabled' : ''}>Confirm</button>
+            <button class="action-btn" data-action="complete" data-id="${booking._id}" ${!showComplete ? 'disabled' : ''}>Complete</button>
+            ${isPending 
+              ? `<button class="action-btn danger" data-action="reject" data-id="${booking._id}">Reject</button>`
+              : `<button class="action-btn danger" data-action="delete" data-id="${booking._id}">Delete</button>`
             }
+            <button class="action-btn" data-action="edit" data-id="${booking._id}">Edit</button>
           </div>
         </td>
       </tr>
-    `).join("") || emptyRow(8, "No bookings found.");
+      `;
+    }).join("") || emptyRow(8, "No bookings found.");
+
+    // Bind all actions
     tbody.querySelectorAll("[data-action]").forEach((button) => {
       button.addEventListener("click", () => handleBookingAction(button.dataset.action, button.dataset.id));
     });
   }
-
   async function saveBooking(event) {
     event.preventDefault();
     const id = document.getElementById("bookingId").value;
@@ -329,31 +337,50 @@ async function refreshState() {
     openModal("#bookingModal");
   }
 
-  async function handleBookingAction(action, id) {
-    const booking = state.bookings.find((entry) => entry._id === id);
-    if (!booking) return;
+    async function handleBookingAction(action, id) {
+      const booking = state.bookings.find((entry) => entry._id === id);
+      if (!booking) return;
 
-    if (action === "edit") {
-      openBookingModal(booking);
-      return;
-    }
+      if (action === "edit") {
+        openBookingModal(booking);
+        return;
+      }
 
-    if (action === "delete") {
-      openDialog({
-        eyebrow: "Delete Booking",
-        title: "Delete this booking?",
-        message: `Permanently delete ${booking.name}'s booking from the system?`,
-        confirmLabel: "Delete",
-        confirmVariant: "danger",
-        onConfirm: async () => {
-          await fetchWithAuth(`/api/admin/bookings/${id}`, { method: "DELETE" });
-          await refreshState();
-          renderAll();
-        }
-      });
-      return;
-    }
+      if (action === "reject") {
+        openDialog({
+          eyebrow: "Reject Booking",
+          title: "Reject this booking?",
+          message: `Reject ${booking.name}'s booking for ${booking.service}?`,
+          confirmLabel: "Reject",
+          confirmVariant: "danger",
+          onConfirm: async () => {
+            await fetchWithAuth(`/api/admin/bookings/${id}`, { 
+              method: "PUT",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ status: "cancelled" })
+            });
+            await refreshState();
+            renderAll();
+          }
+        });
+        return;
+      }
 
+      if (action === "delete") {
+        openDialog({
+          eyebrow: "Delete Booking",
+          title: "Delete permanently?",
+          message: `Remove ${booking.name}'s booking completely?`,
+          confirmLabel: "Delete",
+          confirmVariant: "danger",
+          onConfirm: async () => {
+            await fetchWithAuth(`/api/admin/bookings/${id}`, { method: "DELETE" });
+            await refreshState();
+            renderAll();
+          }
+        });
+        return;
+      }
     if (action === "reject") {
       openDialog({
         eyebrow: "Reject Booking",

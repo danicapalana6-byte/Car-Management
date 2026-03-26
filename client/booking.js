@@ -623,7 +623,7 @@ function loadServices() {
     
     const servicesOverview = document.getElementById('servicesOverview');
     const serviceEl = document.getElementById('service');
-    const previousServiceValue = serviceEl ? (serviceEl.dataset.selectedServiceValue || serviceEl.value) : "";
+    const previousServiceValue = serviceEl ? (serviceEl.value || serviceEl.dataset.selectedServiceValue) : "";
     const previousServiceName = serviceEl && serviceEl.selectedOptions[0]
         ? serviceEl.selectedOptions[0].textContent.split(" - ")[0].trim().toLowerCase()
         : ((serviceEl && serviceEl.dataset.selectedServiceName) || "").trim().toLowerCase();
@@ -673,7 +673,7 @@ function loadServices() {
     }
 
     if (serviceEl && (previousServiceValue || previousServiceName)) {
-        syncSelectedServiceOption(previousServiceValue, serviceEl.dataset.selectedServiceName || previousServiceName);
+        syncSelectedServiceOption(previousServiceValue, previousServiceName || serviceEl.dataset.selectedServiceName);
     }
 
     // Populate cards
