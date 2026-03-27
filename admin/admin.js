@@ -266,8 +266,8 @@ async function refreshState() {
     tbody.innerHTML = [...state.bookings].sort(sortByCreatedAtDesc).map((booking) => {
       const statusLower = (booking.status || "pending").toLowerCase();
       const isPending = statusLower === "pending";
-      const showConfirm = !(booking.status === "confirmed" || booking.status === "completed");
-      const showComplete = booking.status !== "completed";
+      const showConfirm = !(booking.status === "confirmed" || booking.status === "completed" || booking.status === "cancelled");
+      const showComplete = booking.status !== "completed" && booking.status !== "cancelled";
       
       return `
       <tr>
@@ -280,10 +280,10 @@ async function refreshState() {
           <div class="table-actions">
             <button class="action-btn" data-action="confirm" data-id="${booking._id}" ${!showConfirm ? 'disabled' : ''}>Confirm</button>
             <button class="action-btn" data-action="complete" data-id="${booking._id}" ${!showComplete ? 'disabled' : ''}>Complete</button>
-            ${isPending 
-              ? `<button class="action-btn danger" data-action="reject" data-id="${booking._id}">Reject</button>`
-              : `<button class="action-btn danger" data-action="delete" data-id="${booking._id}">Delete</button>`
-            }
+    ${isPending 
+      ? `<button class="action-btn danger" data-action="reject" data-id="${booking._id}">Reject</button>`
+      : `<button class="action-btn danger" data-action="delete" data-id="${booking._id}">Delete</button>`
+    }
             <button class="action-btn" data-action="edit" data-id="${booking._id}">Edit</button>
           </div>
         </td>
@@ -380,46 +380,11 @@ async function refreshState() {
         return;
       }
 
-      if (action === "reject") {
-        openDialog({
-          eyebrow: "Reject Booking",
-          title: "Reject this booking?",
-          message: `Reject ${booking.name}'s booking for ${booking.service}?`,
-          confirmLabel: "Reject",
-          confirmVariant: "danger",
-          onConfirm: async () => {
-            await fetchWithAuth(`/api/admin/bookings/${id}`, { 
-              method: "PUT",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ status: "cancelled" })
-            });
-            await refreshState();
-            renderAll();
-          }
-        });
-        return;
-      }
-
-      if (action === "delete") {
-        openDialog({
-          eyebrow: "Delete Booking",
-          title: "Delete permanently?",
-          message: `Remove ${booking.name}'s booking completely?`,
-          confirmLabel: "Delete",
-          confirmVariant: "danger",
-          onConfirm: async () => {
-            await fetchWithAuth(`/api/admin/bookings/${id}`, { method: "DELETE" });
-            await refreshState();
-            renderAll();
-          }
-        });
-        return;
-      }
     if (action === "reject") {
       openDialog({
         eyebrow: "Reject Booking",
-        title: "Reject this booking?",
-        message: `Set ${booking.name}'s booking for ${booking.service} to cancelled?`,
+        title: "Reject booking?",
+        message: `Set ${booking.name}'s ${booking.service} booking to "cancelled"`,
         confirmLabel: "Reject",
         confirmVariant: "danger",
         onConfirm: async () => {
@@ -428,6 +393,22 @@ async function refreshState() {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ status: "cancelled" })
           });
+          await refreshState();
+          renderAll();
+        }
+      });
+      return;
+    }
+
+    if (action === "delete") {
+      openDialog({
+        eyebrow: "Delete Booking",
+        title: "Delete booking?",
+        message: `Remove ${booking.name}'s booking completely from the list?`,
+        confirmLabel: "Delete",
+        confirmVariant: "danger",
+        onConfirm: async () => {
+          await fetchWithAuth(`/api/admin/bookings/${id}`, { method: "DELETE" });
           await refreshState();
           renderAll();
         }

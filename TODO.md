@@ -1,11 +1,34 @@
-# P3 Carwash System - Admin Bookings Edit Modal Task
+# Car Wash System - Reject Button Red Styling Task
 
-## Steps:
-- [ ] 1. Create this TODO.md
-- [x] 2. Edit admin/dashboard.html: Remove Email and Status columns from bookings table thead
-- [x] 3. Edit admin/admin.js: Update renderBookingsTable() - remove email/status <td>s, colspan 8→6
-- [x] 4. Test: Refresh admin/dashboard.html, navigate to Bookings, click Edit button
-- [x] 5. Update TODO.md with completion
-- [x] 6. attempt_completion
+## Overview
+Add red background styling to client booking list rows when admin clicks "Reject" (sets status "cancelled"), matching the green styling for "Confirm".
 
-Current progress: Starting implementation.
+## Steps to Complete
+
+### 1. ✅ Create TODO.md (Current)
+### 2. ✅ Update client/booking.js
+   - Extended row coloring: added `else if (b.status === 'cancelled') { tr.style.backgroundColor = '#fee2e2'; }`
+
+### 3. ✅ Update client/2style.css
+   - Added `.status-cancelled` styles: red bg, dark red text, rounded badge
+
+### 4. Test Changes
+   - `node server.js`
+   - Client login → create pending booking
+   - Admin login → reject booking
+   - Verify client bookings page shows red row + red status badge after ~5s refresh
+   - Test mobile responsiveness
+
+### 5. Complete Task
+   - attempt_completion
+   - `node server.js`
+   - Client login → create pending booking
+   - Admin login → reject booking
+   - Verify client bookings page shows red row + red status badge after ~5s refresh
+   - Test mobile responsiveness
+
+### 5. Complete Task
+   - attempt_completion
+
+**Status:** Ready for implementation
+
