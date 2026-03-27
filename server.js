@@ -466,18 +466,7 @@ adminApiRouter.delete("/feedbacks/:id", async (req, res) => {
     } catch (e) { res.status(500).json({error: e.message}); }
 });
 
-adminApiRouter.delete("/bookings/:id", async (req, res) => {
-    try {
-        const deleted = await Booking.findByIdAndDelete(req.params.id);
-        if (deleted) {
-            res.json({message: 'Deleted'});
-        } else {
-            res.status(404).json({error: 'Not found'});
-        }
-    } catch (error) {
-        res.status(500).json({error: error.message});
-    }
-});
+
 
 app.use('/api/admin', adminApiRouter);
 

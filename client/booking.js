@@ -820,6 +820,11 @@ function renderBookings(list) {
             bookingsTbody.innerHTML = upcomingBookings.length ? "" : '<tr><td colspan="8">No upcoming bookings</td></tr>'; 
             list.forEach(b => {
                 const tr = document.createElement("tr");
+                if (b.status === 'confirmed') {
+                    tr.style.backgroundColor = 'lightgreen';
+                } else if (b.status === 'cancelled') {
+                    tr.style.backgroundColor = '#fee2e2';
+                }
 let actionsHtml = '';
                 const status = (b.status || 'pending').toLowerCase();
                 if (status === "pending") {
@@ -1640,6 +1645,6 @@ async function loadOffers() {
 }
     
     // Refresh bookings periodically
-    setInterval(loadBookings, 30000); // Changed to 30 seconds
+    setInterval(loadBookings, 5000); // Changed to 5 seconds
     setInterval(loadServicesDynamic, 30000);
 });

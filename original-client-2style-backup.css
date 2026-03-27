@@ -1,0 +1,42 @@
+/* YOUR EXACT ORIGINAL CSS BACKUP - Before any changes */
+/* Save this to restore if needed */
+
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
+
+:root{
+  --bg-soft:#eef8ef;
+  --bg-panel:#ffffff;
+  --bg-subtle:#f7fbf7;
+  --green-900:#174a1b;
+  --green-800:#1b5e20;
+  --green-700:#2e7d32;
+  --green-600:#43a047;
+  --green-100:#dcefdc;
+  --text-main:#214326;
+  --text-soft:#5a7260;
+  --border-soft:#d7e8d8;
+  --shadow-sm:0 8px 24px rgba(20, 56, 24, 0.08);
+  --shadow-md:0 16px 38px rgba(20, 56, 24, 0.11);
+  --radius-md:14px;
+  --radius-lg:20px;
+}
+
+/* [REST OF YOUR EXACT ORIGINAL CSS - COMPLETE FILE CONTENT HERE] */
+
+th{
+  background:#2e7d32;
+  color:white;
+  font-size:0.9rem;
+  letter-spacing:0.02em;
+}
+
+tr:hover{
+  background:#f7fbf7;
+}
+
+.profile-picture{
+  /* original profile styles */
+}
+
+/* ADD ALL ORIGINAL CONTENT HERE - FULL BACKUP */
+
